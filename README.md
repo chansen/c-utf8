@@ -211,7 +211,7 @@ Throughput advantage depends on content mix and microarchitecture; see the
 **`utf8_maximal_subpart`** returns the length of the maximal subpart of the
 ill-formed sequence starting at `src[0..len)`, as defined by Unicode 
 (see [Error handling and U+FFFD replacement](#error-handling-and-ufffd-replacement)). 
-The return value is always >= 1. Call this after `utf8_check`reports failure, 
+The return value is always >= 1. Call this after `utf8_check` reports failure, 
 with `src` advanced to the cursor position.
 
 ---
@@ -380,13 +380,11 @@ int utf8_decode_next_replace(const char *src, size_t len, uint32_t *codepoint);
 Never returns a negative value; returns `0` only when `len` is 0.
 
 ```c
+uint32_t cp;
 while (len > 0) {
-  uint32_t cp;
   int n = utf8_decode_next_replace(src, len, &cp);
-  if (n == 0)
-    break;
   process(cp); // U+FFFD for any ill-formed sequence
-  src += n; 
+  src += n;
   len -= n;
 }
 ```
@@ -468,37 +466,31 @@ ill-formed sequence and `advance` is the length of its maximal subpart
 Resume transcoding at `src[consumed + advance]`.
 
 ```c
-// Simple case: replace ill-formed sequences with U+FFFD
+// Replace ill-formed sequences with U+FFFD
 uint16_t dst[256];
 utf8_transcode_result_t r;
 do {
-  r = utf8_transcode_utf16_replace(src, src_len, dst, sizeof dst);
+  r = utf8_transcode_utf16_replace(src, src_len, dst, sizeof dst / sizeof *dst);
   flush(dst, r.written);
   src     += r.consumed;
   src_len -= r.consumed;
 } while (r.status == UTF8_TRANSCODE_EXHAUSTED);
 
-// Strict case: stop on ill-formed input
+// Strict: report each ill-formed sequence to the caller
 while (src_len > 0) {
-  utf8_transcode_result_t r = utf8_transcode_utf16(src, src_len, dst, sizeof dst);
+  r = utf8_transcode_utf16(src, src_len, dst, sizeof dst / sizeof *dst);
   flush(dst, r.written);
+  src     += r.consumed;
+  src_len -= r.consumed;
 
-  switch (r.status) {
-  case UTF8_TRANSCODE_OK:
-  case UTF8_TRANSCODE_EXHAUSTED:
-    src     += r.consumed;
-    src_len -= r.consumed;
-    break;
-  case UTF8_TRANSCODE_ILLFORMED:
-  case UTF8_TRANSCODE_TRUNCATED:
-    handle_error(src + r.consumed, r.advance);
-    src     += r.consumed + r.advance;
-    src_len -= r.consumed + r.advance;
-    break;
+  if (r.status == UTF8_TRANSCODE_ILLFORMED || r.status == UTF8_TRANSCODE_TRUNCATED) {
+    handle_error(src, r.advance);
+    src     += r.advance;
+    src_len -= r.advance;
+    if (r.status == UTF8_TRANSCODE_TRUNCATED)
+      break;
   }
-
-  if (r.status == UTF8_TRANSCODE_OK ||
-    r.status == UTF8_TRANSCODE_TRUNCATED)
+  else if (r.status == UTF8_TRANSCODE_OK)
     break;
 }
 ```
