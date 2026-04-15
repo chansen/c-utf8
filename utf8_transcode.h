@@ -25,6 +25,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifndef UTF8_DFA64_H
+#  error "include utf8_dfa64.h before utf8_transcode.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
