@@ -79,28 +79,20 @@ static inline size_t utf8_maximal_prefix(const char* src, size_t len) {
 }
 
 static inline bool utf8_check(const char* src,
-                              size_t slen,
+                              size_t len,
                               size_t* cursor) {
   const unsigned char* s = (const unsigned char*)src;
-  size_t len = slen;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
 
-  // Process 16-byte chunks
-  while (len >= 16) {
-    state = utf8_dfa_run16(state, s);
-    s += 16;
-    len -= 16;
-  }
-
-  state = utf8_dfa_run(state, s, len);
+  state = utf8_dfa_run_dual(state, s, len);
   if (state == UTF8_DFA_ACCEPT) {
     if (cursor)
-      *cursor = slen;
+      *cursor = len;
     return true;
   }
 
   if (cursor)
-    *cursor = utf8_maximal_prefix(src, slen);
+    *cursor = utf8_maximal_prefix(src, len);
   return false;
 }
 
