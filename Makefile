@@ -33,7 +33,11 @@ TESTS = \
 	decode_next \
 	decode_prev \
 	transcode_utf16 \
-	transcode_utf32
+	transcode_utf32 \
+	dfa_run_dual32 \
+	dfa_run_dual64 \
+	dfa_run_triple32 \
+	dfa_run_triple64
 
 all: test
 
@@ -103,6 +107,18 @@ transcode_utf16: $(TEST_DIR)/transcode_utf16.c utf8_dfa64.h utf8_transcode.h
 transcode_utf32: $(TEST_DIR)/transcode_utf32.c utf8_dfa64.h utf8_transcode.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf32.c
 
+dfa_run_dual32: $(TEST_DIR)/dfa_run_dual.c utf8_dfa32.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/dfa_run_dual.c
+
+dfa_run_dual64: $(TEST_DIR)/dfa_run_dual.c utf8_dfa64.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/dfa_run_dual.c
+
+dfa_run_triple32: $(TEST_DIR)/dfa_run_triple.c utf8_dfa32.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/dfa_run_triple.c
+
+dfa_run_triple64: $(TEST_DIR)/dfa_run_triple.c utf8_dfa64.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/dfa_run_triple.c
+
 test: $(TESTS)
 	./dfa_step32
 	./dfa_step64
@@ -126,6 +142,10 @@ test: $(TESTS)
 	./decode_prev
 	./transcode_utf16
 	./transcode_utf32
+	./dfa_run_dual32
+	./dfa_run_dual64
+	./dfa_run_triple32
+	./dfa_run_triple64
 
 bench: $(BENCH_SRC) utf8_valid.h
 	$(CC) $(CPPFLAGS) $(BENCH_CFLAGS) -o $(BENCH_BIN) $(BENCH_SRC)
