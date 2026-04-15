@@ -402,7 +402,7 @@ static double run_bench(utf8_valid_fn fn,
   }
 
   double elapsed = now_seconds() - t;
-  return (double)iters / elapsed * mb;
+  return (double)iters / elapsed * (len / (1000.0 * 1000.0));
 }
 
 static void bench_file(const char* path,
@@ -462,8 +462,8 @@ static void bench_file(const char* path,
     if (i == 0)
       printf("  %-22s  %8.0f MB/s\n", bench_entries[idx].name, rates[idx]);
     else
-      printf("  %-22s  %8.0f MB/s  (%+.0f%%)\n", bench_entries[idx].name,
-             rates[idx], (rates[idx] / rates[order[0]] - 1.0) * 100.0);
+      printf("  %-22s  %8.0f MB/s  (%.2fx)\n", bench_entries[idx].name,
+             rates[idx], rates[idx] / rates[order[0]]);
   }
   printf("\n");
 
