@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Derives state offsets and transition row values for the 32-bit UTF-8
-# validation DFA encoded in utf8_valid.h.
+# validation DFA encoded in utf8_dfa32.h.
 #
 # The DFA has 9 states. Each state is assigned a bit offset within a
 # 32-bit integer. Each byte class maps to a row value; the 5-bit window

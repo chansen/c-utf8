@@ -10,7 +10,7 @@
 #
 # S_ERROR is fixed at offset 0. Error transitions contribute 0 to the
 # row value and are therefore free. The solver finds the smallest set of
-# offsets for the remaining 8 states such that all transition windows fit
+# offsets for the remaining 6 states such that all transition windows fit
 # without collision within 32 - 5 = 27 bits.
 #
 # Minimizing the concatenation of all variables makes the solution unique
