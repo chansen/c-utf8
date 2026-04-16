@@ -643,7 +643,7 @@ reaches ~36 GB/s at `-O3`.
   the CPU's out-of-order engine can overlap both shift operations on cores
   with multiple shift-capable execution ports.
 - On wide-issue cores (Raptor Lake P-cores with BMI2, Apple M1 Firestorm),
-  dual-stream reaches approximately two bytes per clock cycle at peak
+  dual-stream reaches approximately 1.4 bytes per clock cycle at peak
   throughput.
 - On x86, `-march=x86-64-v3` or `-march=native` enables BMI2 `SHRX`, which
   removes the variable-shift dependency on `CL`.
