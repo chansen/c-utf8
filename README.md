@@ -580,33 +580,33 @@ dual-stream validation; see [Observations](#observations).
 
 ### Raptor Lake (Clang 20, x86-64)
 
-| Flags                   | `utf8_valid` | `utf8_valid_ascii` | Notes                                         |
-| :---                    |         ---: |               ---: | :---                                          |
-| `-O2`                   |    4107 MB/s |          2986 MB/s | dual-stream ILP effective without BMI2        |
-| `-O2 -march=x86-64-v3`  |    6394 MB/s |          4175 MB/s | BMI2 `SHRX` on two ports; both chains overlap |
-| `-O3 -march=x86-64-v3`  |    6471 MB/s |          5349 MB/s | fast path not profitable on multibyte         |
+| Flags                   | `utf8_valid` | `utf8_valid_ascii` | Notes                                  |
+| :---                    |         ---: |               ---: | :---                                   |
+| `-O2`                   |    4107 MB/s |          2986 MB/s | dual-stream ILP effective without BMI2 |
+| `-O2 -march=x86-64-v3`  |    6394 MB/s |          4175 MB/s | BMI2 `SHRX` on two ports               |
+| `-O3 -march=x86-64-v3`  |    6471 MB/s |          5349 MB/s | fast path not profitable on multibyte  |
 
 Numbers shown for ar.txt (81% 2-byte). On near-pure ASCII (en.txt) `utf8_valid_ascii`
 reaches 29–35 GB/s at `-O3`.
 
 ### Raptor Lake (GCC 14, x86-64)
 
-| Flags                   | `utf8_valid` | `utf8_valid_ascii` | Notes                                         |
-| :---                    |         ---: |               ---: | :---                                          |
-| `-O2`                   |    3714 MB/s |          2774 MB/s | dual-stream helps even without BMI2           |
-| `-O2 -march=x86-64-v3`  |    6725 MB/s |          4125 MB/s | BMI2 `SHRX` on two ports; both chains overlap |
-| `-O3 -march=x86-64-v3`  |    6489 MB/s |          4164 MB/s | fast path not profitable on multibyte         |
+| Flags                   | `utf8_valid` | `utf8_valid_ascii` | Notes                                  |
+| :---                    |         ---: |               ---: | :---                                   |
+| `-O2`                   |    3714 MB/s |          2774 MB/s | dual-stream ILP effective without BMI2 |
+| `-O2 -march=x86-64-v3`  |    6725 MB/s |          4125 MB/s | BMI2 `SHRX` on two ports               |
+| `-O3 -march=x86-64-v3`  |    6489 MB/s |          4164 MB/s | fast path not profitable on multibyte  |
 
 Numbers shown for ar.txt (81% 2-byte). On near-pure ASCII (en.txt) `utf8_valid_ascii`
 reaches 36–41 GB/s at `-O3`.
 
 ### Haswell (Clang 22, x86-64)
 
-| Flags                   | `utf8_valid` | `utf8_valid_ascii` | Notes                                  |
-| :---                    |         ---: |               ---: | :---                                   |
-| `-O2`                   |    2370 MB/s |          1756 MB/s | narrow backend limits ILP gain         |
-| `-O2 -march=x86-64-v3`  |    3674 MB/s |          2626 MB/s | BMI2 `SHRX` helps but single-port      |
-| `-O3 -march=x86-64-v3`  |    3682 MB/s |          3328 MB/s | gap narrows at `-O3`                   |
+| Flags                   | `utf8_valid` | `utf8_valid_ascii` | Notes                          |
+| :---                    |         ---: |               ---: | :---                           |
+| `-O2`                   |    2370 MB/s |          1756 MB/s | narrow backend limits ILP gain |
+| `-O2 -march=x86-64-v3`  |    3674 MB/s |          2626 MB/s | BMI2 `SHRX`                    |
+| `-O3 -march=x86-64-v3`  |    3682 MB/s |          3328 MB/s | gap narrows at `-O3`           |
 
 Numbers shown for ar.txt (81% 2-byte). On near-pure ASCII (en.txt) `utf8_valid_ascii`
 reaches 16–20 GB/s at all optimization levels.
