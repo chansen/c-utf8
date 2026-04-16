@@ -77,23 +77,23 @@ valid_file32: $(TEST_DIR)/valid_file.c utf8_dfa32.h utf8_valid.h
 valid_file64: $(TEST_DIR)/valid_file.c utf8_dfa64.h utf8_valid.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/valid_file.c
 
-advance_forward32: $(TEST_DIR)/valid_file.c utf8_dfa32.h utf8_advance_forward.h
+advance_forward32: $(TEST_DIR)/advance_forward.c utf8_dfa32.h utf8_advance_forward.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/advance_forward.c
 
-advance_forward64: $(TEST_DIR)/valid_file.c utf8_dfa64.h utf8_advance_forward.h
-	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64  -o $@ $(TEST_DIR)/advance_forward.c
+advance_forward64: $(TEST_DIR)/advance_forward.c utf8_dfa64.h utf8_advance_forward.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/advance_forward.c
 
-advance_backward32: $(TEST_DIR)/valid_file.c utf8_rdfa32.h utf8_advance_backward.h
+advance_backward32: $(TEST_DIR)/advance_backward.c utf8_rdfa32.h utf8_advance_backward.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/advance_backward.c
 
-advance_backward64: $(TEST_DIR)/valid_file.c utf8_rdfa64.h utf8_advance_backward.h
-	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_RDFA_64  -o $@ $(TEST_DIR)/advance_backward.c
-	
-distance32: $(TEST_DIR)/valid_file.c utf8_dfa32.h utf8_distance.h
+advance_backward64: $(TEST_DIR)/advance_backward.c utf8_rdfa64.h utf8_advance_backward.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_RDFA_64 -o $@ $(TEST_DIR)/advance_backward.c
+
+distance32: $(TEST_DIR)/distance.c utf8_dfa32.h utf8_distance.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/distance.c
 
-distance64: $(TEST_DIR)/valid_file.c utf8_dfa64.h utf8_distance.h
-	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64  -o $@ $(TEST_DIR)/distance.c
+distance64: $(TEST_DIR)/distance.c utf8_dfa64.h utf8_distance.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/distance.c
 
 decode_next: $(TEST_DIR)/decode_next.c utf8_dfa64.h utf8_decode_next.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/decode_next.c
