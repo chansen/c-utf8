@@ -25,6 +25,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "utf8_transcode_common.h"
+
 #ifndef UTF8_DFA64_H
 #  error "include utf8_dfa64.h before utf8_transcode.h"
 #endif
@@ -32,39 +34,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*
- * utf8_transcode_status_t -- outcome of a transcoding operation.
- *
- *   UTF8_TRANSCODE_OK         src fully consumed, no errors.
- *   UTF8_TRANSCODE_EXHAUSTED  dst full before src was consumed.
- *   UTF8_TRANSCODE_ILLFORMED  stopped at an ill-formed sequence.
- *   UTF8_TRANSCODE_TRUNCATED  src ends in the middle of a sequence.
- */
-typedef enum {
-  UTF8_TRANSCODE_OK,
-  UTF8_TRANSCODE_EXHAUSTED,
-  UTF8_TRANSCODE_ILLFORMED,
-  UTF8_TRANSCODE_TRUNCATED,
-} utf8_transcode_status_t;
-
-/*
- * utf8_transcode_result_t -- result of a transcoding operation.
- *
- *   status:    outcome of the operation (see utf8_transcode_status_t).
- *   consumed:  bytes read from src.
- *   decoded:   codepoints decoded from src.
- *   written:   code units written to dst.
- *   advance:   bytes to skip past the ill-formed sequence on ILLFORMED or
- *              TRUNCATED, else 0. Resume at src[consumed+advance].
- */
-typedef struct {
-  utf8_transcode_status_t status;
-  size_t consumed;
-  size_t decoded;
-  size_t written;
-  size_t advance;
-} utf8_transcode_result_t;
 
 /*
  * utf8_transcode_utf16 -- transcode UTF-8 to UTF-16.
