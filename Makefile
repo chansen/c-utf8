@@ -37,6 +37,7 @@ TESTS = \
 	distance_ascii32 \
 	distance_ascii64 \
 	decode_next \
+	decode_next_unsafe \
 	decode_prev \
 	transcode_utf16 \
 	transcode_utf16_unsafe \
@@ -124,6 +125,9 @@ distance_ascii64: $(TEST_DIR)/distance_ascii.c utf8_dfa64.h utf8_distance.h
 decode_next: $(TEST_DIR)/decode_next.c utf8_dfa64.h utf8_decode_next.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/decode_next.c
 
+decode_next_unsafe: $(TEST_DIR)/decode_next_unsafe.c utf8_dfa64.h utf8_decode_next.h utf8_decode_next_unsafe.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/decode_next_unsafe.c
+
 decode_prev: $(TEST_DIR)/decode_prev.c utf8_rdfa64.h utf8_decode_prev.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/decode_prev.c
 
@@ -177,6 +181,7 @@ test: $(TESTS)
 	./distance_ascii32
 	./distance_ascii64
 	./decode_next
+	./decode_next_unsafe
 	./decode_prev
 	./transcode_utf16
 	./transcode_utf16_unsafe
