@@ -39,7 +39,9 @@ TESTS = \
 	decode_next \
 	decode_prev \
 	transcode_utf16 \
+	transcode_utf16_unsafe \
 	transcode_utf32 \
+	transcode_utf32_unsafe \
 	dfa_run_dual32 \
 	dfa_run_dual64 \
 	dfa_run_triple32 \
@@ -125,11 +127,17 @@ decode_next: $(TEST_DIR)/decode_next.c utf8_dfa64.h utf8_decode_next.h
 decode_prev: $(TEST_DIR)/decode_prev.c utf8_rdfa64.h utf8_decode_prev.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/decode_prev.c
 
-transcode_utf16: $(TEST_DIR)/transcode_utf16.c utf8_dfa64.h utf8_transcode.h
+transcode_utf16: $(TEST_DIR)/transcode_utf16.c utf8_dfa64.h utf8_transcode.h utf8_transcode_common.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf16.c
 
-transcode_utf32: $(TEST_DIR)/transcode_utf32.c utf8_dfa64.h utf8_transcode.h
+transcode_utf16_unsafe: $(TEST_DIR)/transcode_utf16_unsafe.c utf8_dfa64.h utf8_transcode.h utf8_transcode_unsafe.h utf8_transcode_common.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf16_unsafe.c
+
+transcode_utf32: $(TEST_DIR)/transcode_utf32.c utf8_dfa64.h utf8_transcode.h utf8_transcode_common.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf32.c
+
+transcode_utf32_unsafe: $(TEST_DIR)/transcode_utf32_unsafe.c utf8_dfa64.h utf8_transcode.h utf8_transcode_unsafe.h utf8_transcode_common.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf32_unsafe.c
 
 dfa_run_dual32: $(TEST_DIR)/dfa_run_dual.c utf8_dfa32.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/dfa_run_dual.c
@@ -171,7 +179,9 @@ test: $(TESTS)
 	./decode_next
 	./decode_prev
 	./transcode_utf16
+	./transcode_utf16_unsafe
 	./transcode_utf32
+	./transcode_utf32_unsafe
 	./dfa_run_dual32
 	./dfa_run_dual64
 	./dfa_run_triple32
