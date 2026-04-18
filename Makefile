@@ -26,10 +26,16 @@ TESTS = \
 	valid_file64 \
 	advance_forward32 \
 	advance_forward64 \
+	advance_forward_ascii32 \
+	advance_forward_ascii64 \
 	advance_backward32 \
 	advance_backward64 \
+	advance_backward_ascii32 \
+	advance_backward_ascii64 \
 	distance32 \
 	distance64 \
+	distance_ascii32 \
+	distance_ascii64 \
 	decode_next \
 	decode_prev \
 	transcode_utf16 \
@@ -83,17 +89,35 @@ advance_forward32: $(TEST_DIR)/advance_forward.c utf8_dfa32.h utf8_advance_forwa
 advance_forward64: $(TEST_DIR)/advance_forward.c utf8_dfa64.h utf8_advance_forward.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/advance_forward.c
 
+advance_forward_ascii32: $(TEST_DIR)/advance_forward_ascii.c utf8_dfa32.h utf8_advance_forward.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/advance_forward_ascii.c
+
+advance_forward_ascii64: $(TEST_DIR)/advance_forward_ascii.c utf8_dfa64.h utf8_advance_forward.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/advance_forward_ascii.c
+
 advance_backward32: $(TEST_DIR)/advance_backward.c utf8_rdfa32.h utf8_advance_backward.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/advance_backward.c
 
 advance_backward64: $(TEST_DIR)/advance_backward.c utf8_rdfa64.h utf8_advance_backward.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_RDFA_64 -o $@ $(TEST_DIR)/advance_backward.c
 
+advance_backward_ascii32: $(TEST_DIR)/advance_backward_ascii.c utf8_rdfa32.h utf8_advance_backward.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/advance_backward_ascii.c
+
+advance_backward_ascii64: $(TEST_DIR)/advance_backward_ascii.c utf8_rdfa64.h utf8_advance_backward.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_RDFA_64 -o $@ $(TEST_DIR)/advance_backward_ascii.c
+
 distance32: $(TEST_DIR)/distance.c utf8_dfa32.h utf8_distance.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/distance.c
 
 distance64: $(TEST_DIR)/distance.c utf8_dfa64.h utf8_distance.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/distance.c
+
+distance_ascii32: $(TEST_DIR)/distance_ascii.c utf8_dfa32.h utf8_distance.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/distance_ascii.c
+
+distance_ascii64: $(TEST_DIR)/distance_ascii.c utf8_dfa64.h utf8_distance.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/distance_ascii.c
 
 decode_next: $(TEST_DIR)/decode_next.c utf8_dfa64.h utf8_decode_next.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/decode_next.c
@@ -134,10 +158,16 @@ test: $(TESTS)
 	./valid_file64 $(TEST_DATA)
 	./advance_forward32
 	./advance_forward64
+	./advance_forward_ascii32
+	./advance_forward_ascii64
 	./advance_backward32
 	./advance_backward64
+	./advance_backward_ascii32
+	./advance_backward_ascii64
 	./distance32
 	./distance64
+	./distance_ascii32
+	./distance_ascii64
 	./decode_next
 	./decode_prev
 	./transcode_utf16

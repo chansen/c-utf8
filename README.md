@@ -307,10 +307,15 @@ Requires `utf8_dfa32.h` or `utf8_dfa64.h`.
 
 ```c
 size_t utf8_distance(const char *src, size_t len);
+size_t utf8_distance_ascii(const char *src, size_t len);
 ```
 
 **`utf8_distance`** returns the number of Unicode codepoints in
 `src[0..len)`, or `(size_t)-1` if the input contains ill-formed UTF-8.
+
+**`utf8_distance_ascii`** is a drop-in replacement with an 8-byte ASCII
+fast path that skips the DFA for chunks containing only ASCII bytes.
+Behaviour is identical to `utf8_distance`.
 
 ---
 
@@ -323,6 +328,10 @@ size_t utf8_advance_forward(const char *src,
                             size_t len,
                             size_t distance,
                             size_t *advanced);
+size_t utf8_advance_forward_ascii(const char *src,
+                                  size_t len,
+                                  size_t distance,
+                                  size_t *advanced);
 ```
 
 **`utf8_advance_forward`** returns the byte offset of the codepoint
@@ -332,6 +341,10 @@ input contains ill-formed UTF-8.
 
 If `advanced` is non-NULL, sets `*advanced` to the number of codepoints
 actually skipped before stopping.
+
+**`utf8_advance_forward_ascii`** is a drop-in replacement with an 8-byte
+ASCII fast path that skips the DFA for chunks containing only ASCII bytes.
+Behaviour is identical to `utf8_advance_forward`.
 
 ---
 
@@ -344,6 +357,10 @@ size_t utf8_advance_backward(const char *src,
                              size_t len,
                              size_t distance, 
                              size_t *advanced);
+size_t utf8_advance_backward_ascii(const char *src,
+                                   size_t len,
+                                   size_t distance,
+                                   size_t *advanced);
 ```
 
 **`utf8_advance_backward`** returns the byte offset of the codepoint
@@ -353,6 +370,10 @@ size_t utf8_advance_backward(const char *src,
 
 If `advanced` is non-NULL, sets `*advanced` to the number of codepoints
 actually skipped before stopping.
+
+**`utf8_advance_backward_ascii`** is a drop-in replacement with an 8-byte
+ASCII fast path that skips the DFA for chunks containing only ASCII bytes.
+Behaviour is identical to `utf8_advance_backward`.
 
 ---
 
@@ -553,9 +574,10 @@ with no heap allocation, no global mutable state, and no use of `errno`.
 **No data-dependent branches on byte value.** The DFA step is a table lookup
 and bitwise shift with no conditional branches that depend on the input byte.
 Execution time scales with the number of bytes processed, not their values.
-Note that `utf8_valid_ascii` and `utf8_check_ascii` are exceptions; they
-branch on whether a chunk contains only ASCII bytes, making their execution
-time content-dependent.
+Note that the `_ascii` variants (`utf8_valid_ascii`, `utf8_check_ascii`,
+`utf8_distance_ascii`, `utf8_advance_forward_ascii`, and
+`utf8_advance_backward_ascii`) are exceptions; they branch on whether a chunk 
+contains only ASCII bytes, making their execution time content-dependent.
 
 ## Performance
 

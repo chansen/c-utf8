@@ -24,6 +24,7 @@
 #define UTF8_ADVANCE_BACKWARD_H
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #if defined(UTF8_RDFA32_H) && defined(UTF8_RDFA64_H)
 #  error "utf8_rdfa32.h and utf8_rdfa64.h are mutually exclusive"
@@ -62,6 +63,68 @@ static inline size_t utf8_advance_backward(const char *src,
            + (s2 == UTF8_RDFA_ACCEPT) + (s3 == UTF8_RDFA_ACCEPT);
     state = s3;
     i -= 4;
+  }
+
+  while (i > 0 && count < distance) {
+    state = utf8_rdfa_step(state, s[--i]);
+    if (state == UTF8_RDFA_ACCEPT)
+      count++;
+  }
+
+  if (advanced)
+    *advanced = count;
+  return state == UTF8_RDFA_ACCEPT ? i : (size_t)-1;
+}
+
+/*
+ * utf8_advance_backward_ascii -- advance backward by distance codepoints
+ * with an ASCII fast path.
+ *
+ * Processes 8 bytes at a time; when all 8 are ASCII and the reverse DFA is 
+ * in the accept state, increments count by 8 without entering the DFA.  
+ * Falls back to byte-wise DFA stepping otherwise.
+ *
+ * Returns the byte offset of the start of the codepoint distance positions
+ * before the end of src[0..len), or 0 if distance exceeds the number of
+ * codepoints in the buffer. Returns (size_t)-1 if src[0..len) contains
+ * ill-formed UTF-8. If advanced is non-NULL, writes the number of codepoints
+ * actually advanced before stopping.
+ */
+static inline size_t utf8_advance_backward_ascii(const char *src,
+                                                 size_t len,
+                                                 size_t distance,
+                                                 size_t *advanced) {
+  const unsigned char *s = (const unsigned char *)src;
+  utf8_rdfa_state_t state = UTF8_RDFA_ACCEPT;
+  size_t i = len;
+  size_t count = 0;
+
+  while (distance - count >= 8 && i >= 8) {
+    if (state == UTF8_RDFA_ACCEPT) {
+      uint64_t v;
+      memcpy(&v, s + i - 8, sizeof(v));
+      if ((v & UINT64_C(0x8080808080808080)) == 0) {
+        count += 8;
+        i -= 8;
+        continue;
+      }
+    }
+    {
+      utf8_rdfa_state_t s0 = utf8_rdfa_step(state, s[i - 1]);
+      utf8_rdfa_state_t s1 = utf8_rdfa_step(s0,    s[i - 2]);
+      utf8_rdfa_state_t s2 = utf8_rdfa_step(s1,    s[i - 3]);
+      utf8_rdfa_state_t s3 = utf8_rdfa_step(s2,    s[i - 4]);
+      utf8_rdfa_state_t s4 = utf8_rdfa_step(s3,    s[i - 5]);
+      utf8_rdfa_state_t s5 = utf8_rdfa_step(s4,    s[i - 6]);
+      utf8_rdfa_state_t s6 = utf8_rdfa_step(s5,    s[i - 7]);
+      utf8_rdfa_state_t s7 = utf8_rdfa_step(s6,    s[i - 8]);
+      count += (s0 == UTF8_RDFA_ACCEPT) + (s1 == UTF8_RDFA_ACCEPT)
+             + (s2 == UTF8_RDFA_ACCEPT) + (s3 == UTF8_RDFA_ACCEPT)
+             + (s4 == UTF8_RDFA_ACCEPT) + (s5 == UTF8_RDFA_ACCEPT)
+             + (s6 == UTF8_RDFA_ACCEPT) + (s7 == UTF8_RDFA_ACCEPT);
+      state = s7;
+    }
+    i -= 8;
   }
 
   while (i > 0 && count < distance) {
