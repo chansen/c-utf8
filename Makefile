@@ -39,6 +39,7 @@ TESTS = \
 	decode_next \
 	decode_next_unsafe \
 	decode_prev \
+	decode_prev_unsafe \
 	transcode_utf16 \
 	transcode_utf16_unsafe \
 	transcode_utf32 \
@@ -131,6 +132,9 @@ decode_next_unsafe: $(TEST_DIR)/decode_next_unsafe.c utf8_dfa64.h utf8_decode_ne
 decode_prev: $(TEST_DIR)/decode_prev.c utf8_rdfa64.h utf8_decode_prev.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/decode_prev.c
 
+decode_prev_unsafe: $(TEST_DIR)/decode_prev_unsafe.c utf8_rdfa64.h utf8_decode_prev.h utf8_decode_prev_unsafe.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/decode_prev_unsafe.c
+
 transcode_utf16: $(TEST_DIR)/transcode_utf16.c utf8_dfa64.h utf8_transcode.h utf8_transcode_common.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf16.c
 
@@ -183,6 +187,7 @@ test: $(TESTS)
 	./decode_next
 	./decode_next_unsafe
 	./decode_prev
+	./decode_prev_unsafe
 	./transcode_utf16
 	./transcode_utf16_unsafe
 	./transcode_utf32
