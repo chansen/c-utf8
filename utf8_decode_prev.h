@@ -60,23 +60,23 @@ static inline int utf8_decode_prev(const char *src,
  const unsigned char *s = (const unsigned char *)src;
  utf8_rdfa_state_t state = UTF8_RDFA_ACCEPT;
  uint32_t cp = 0;
- size_t i = len;
+ size_t pos = len;
 
  do {
-   state = utf8_rdfa_step_decode(state, s[--i], &cp);
+   state = utf8_rdfa_step_decode(state, s[--pos], &cp);
    if (state == UTF8_RDFA_ACCEPT) {
      *codepoint = cp;
-     return (int)(len - i);
+     return (int)(len - pos);
    }
    if (state == UTF8_RDFA_REJECT) {
-     // Single byte (i == len-1): subpart = 1
+     // Single byte (pos == len-1): subpart = 1
      // Multiple bytes: subpart = bytes consumed before the rejecting byte
-     return -(int)(i < len - 1 ? len - i - 1 : 1);
+     return -(int)(pos < len - 1 ? len - pos - 1 : 1);
    }
- } while (i > 0);
+ } while (pos > 0);
 
  // Truncated sequence
- return -(int)(len - i);
+ return -(int)(len - pos);
 }
 
 /*
@@ -99,22 +99,22 @@ static inline int utf8_decode_prev_replace(const char *src,
  const unsigned char *s = (const unsigned char *)src;
  utf8_rdfa_state_t state = UTF8_RDFA_ACCEPT;
  uint32_t cp = 0;
- size_t i = len;
+ size_t pos = len;
 
  do {
-   state = utf8_rdfa_step_decode(state, s[--i], &cp);
+   state = utf8_rdfa_step_decode(state, s[--pos], &cp);
    if (state == UTF8_RDFA_ACCEPT) {
      *codepoint = cp;
-     return (int)(len - i);
+     return (int)(len - pos);
    }
    if (state == UTF8_RDFA_REJECT) {
      *codepoint = 0xFFFDu;
-     return (int)(i < len - 1 ? len - i - 1 : 1);
+     return (int)(pos < len - 1 ? len - pos - 1 : 1);
    }
- } while (i > 0);
+ } while (pos > 0);
 
  *codepoint = 0xFFFDu;
- return (int)(len - i);
+ return (int)(len - pos);
 }
 
 #ifdef __cplusplus

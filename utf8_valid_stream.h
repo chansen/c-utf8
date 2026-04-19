@@ -109,23 +109,23 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
   size_t carried = s->pending;
   size_t consumed = 0;
   size_t chunk_bytes = 0;
-  size_t i = 0;
+  size_t pos = 0;
 
   if (state == UTF8_DFA_ACCEPT && len >= 16) {
     do {
-      if (utf8_dfa_run16(UTF8_DFA_ACCEPT, p + i) != UTF8_DFA_ACCEPT)
+      if (utf8_dfa_run16(UTF8_DFA_ACCEPT, p + pos) != UTF8_DFA_ACCEPT)
         break;
-      i += 16;
-    } while (len - i >= 16);
-    consumed = i;
+      pos += 16;
+    } while (len - pos >= 16);
+    consumed = pos;
   }
 
-  for (; i < len; i++) {
-    state = utf8_dfa_step(state, p[i]);
+  for (; pos < len; pos++) {
+    state = utf8_dfa_step(state, p[pos]);
     chunk_bytes++;
 
     if (state == UTF8_DFA_ACCEPT) {
-      consumed = i + 1;
+      consumed = pos + 1;
       carried = 0;
       chunk_bytes = 0;
     }
