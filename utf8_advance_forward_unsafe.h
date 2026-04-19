@@ -53,39 +53,36 @@ static inline size_t utf8_advance_forward_unsafe(const char *src,
                                                  size_t distance,
                                                  size_t *advanced) {
   const unsigned char *s = (const unsigned char *)src;
-  size_t i = 0;
-  size_t count = 0;
+  size_t pos = 0, count = 0;
 
-  if (distance >= 32 && len >= 32) {
-    do {
-      size_t nb = (distance - count) / 32;
-      size_t lb = (len - i) / 32;
-      size_t blocks = nb < lb ? nb : lb;
+  while (distance - count >= 32 && len - pos >= 32) {
+    size_t remain = (distance - count) / 32;
+    size_t avail  = (len - pos) / 32;
+    size_t blocks = remain < avail ? remain : avail;
 #ifdef UTF8_SIMD_AVAILABLE
-      count += utf8_simd_count_codepoints_Nx32(src + i, blocks);
+    count += utf8_simd_count_codepoints_Nx32(src + pos, blocks);
 #else
-      count += utf8_swar_count_codepoints_Nx32(src + i, blocks);
+    count += utf8_swar_count_codepoints_Nx32(src + pos, blocks);
 #endif
-      i += blocks * 32;
-    } while (distance - count >= 32 && len - i >= 32);
+    pos += blocks * 32;
   }
 
-  while (distance - count >= 8 && len - i >= 8) {
-    count += utf8_swar_count_codepoints_1x8(s + i);
-    i += 8;
+  while (distance - count >= 8 && len - pos >= 8) {
+    count += utf8_swar_count_codepoints_1x8(s + pos);
+    pos += 8;
   }
 
-  while (i < len && count < distance) {
-    count += ((int8_t)s[i] > -65);
-    i++;
+  while (pos < len && count < distance) {
+    count += ((int8_t)s[pos] > -65);
+    pos++;
   }
 
-  while (i < len && (int8_t)s[i] <= -65)
-    i++;
+  while (pos < len && (int8_t)s[pos] <= -65)
+    pos++;
 
   if (advanced)
     *advanced = count;
-  return i;
+  return pos;
 }
 
 #ifdef __cplusplus

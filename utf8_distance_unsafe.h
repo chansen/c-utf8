@@ -42,8 +42,7 @@ extern "C" {
  */
 static inline size_t utf8_distance_unsafe(const char *src, size_t len) {
   const unsigned char *s = (const unsigned char *)src;
-  size_t i = 0;
-  size_t count = 0;
+  size_t pos = 0, count = 0;
 
   size_t n32 = len / 32;
   if (n32) {
@@ -52,16 +51,16 @@ static inline size_t utf8_distance_unsafe(const char *src, size_t len) {
 #else
     count += utf8_swar_count_codepoints_Nx32(s, n32);
 #endif
-    i += n32 * 32;
+    pos += n32 * 32;
   }
 
-  while (i + 8 <= len) {
-    count += utf8_swar_count_codepoints_1x8(s + i);
-    i += 8;
+  while (pos + 8 <= len) {
+    count += utf8_swar_count_codepoints_1x8(s + pos);
+    pos += 8;
   }
 
-  for (; i < len; i++)
-    count += ((int8_t)s[i] > -65);
+  for (; pos < len; pos++)
+    count += ((int8_t)s[pos] > -65);
 
   return count;
 }
