@@ -1,8 +1,5 @@
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include <stdio.h>
 
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
@@ -11,7 +8,7 @@
 #endif
 
 #include "utf8_valid.h"
-#include "test_common.h"
+#include "test_util.h"
 
 void test_utf8(const char* src,
                size_t len,

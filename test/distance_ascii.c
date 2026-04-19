@@ -1,7 +1,3 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
 #else
@@ -9,16 +5,7 @@
 #endif
 #include "utf8_distance.h"
 
-#include "test_common.h"
-
-#define CHECK(cond, msg)          \
-  do {                            \
-    TestCount++;                  \
-    if (!(cond)) {                \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++;               \
-    }                             \
-  } while (0)
+#include "test.h"
 
 static void test_one_stride(void) {
   // exactly 8 ASCII bytes -> 1 fast-path iteration, no tail

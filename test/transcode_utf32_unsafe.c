@@ -1,23 +1,10 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "utf8_dfa64.h"
 #include "utf8_transcode.h"
 #include "utf8_transcode_unsafe.h"
 
-#include "test_common.h"
-
-#define CHECK(cond, msg)          \
-  do {                            \
-    TestCount++;                  \
-    if (!(cond)) {                \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++;               \
-    }                             \
-  } while (0)
+#include "test.h"
 
 static void test_empty(void) {
   uint32_t dst[4];

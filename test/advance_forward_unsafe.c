@@ -1,6 +1,3 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "utf8_advance_forward_unsafe.h"
@@ -12,16 +9,7 @@
 #endif
 #include "utf8_advance_forward.h"
 
-#include "test_common.h"
-
-#define CHECK(cond, msg)          \
-  do {                            \
-    TestCount++;                  \
-    if (!(cond)) {                \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++;               \
-    }                             \
-  } while (0)
+#include "test.h"
 
 // "Aé€𐍈" = 1+2+3+4 = 10 bytes, 4 codepoints
 static const char   *mixed     = "A\xC3\xA9\xE2\x82\xAC\xF0\x90\x8D\x88";

@@ -1,12 +1,13 @@
-#pragma once
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
+/*
+ * test_util.h -- utility functions for c-utf8 tests.
+ *
+ * Provides encode_ord() and escape_str() used by DFA/validation tests.
+ * Includes test.h for the base harness.
+ */
+#ifndef TEST_UTIL_H
+#define TEST_UTIL_H
+#include "test.h"
 #include <assert.h>
-
-static size_t TestCount  = 0;
-static size_t TestFailed = 0;
 
 /*
  * Encodes the given ordinal [0, 7FFFFFFF] using the UTF-8 encoding scheme
@@ -56,11 +57,4 @@ escape_str(const char *src, size_t len, char *dst) {
   return dst;
 }
 
-static inline int
-report_results(void) {
-  if (TestFailed)
-    printf("FAILED %zu tests of %zu.\n", TestFailed, TestCount);
-  else
-    printf("Passed %zu tests.\n", TestCount);
-  return TestFailed ? 1 : 0;
-}
+#endif /* TEST_UTIL_H */

@@ -1,7 +1,3 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
 #else
@@ -10,17 +6,7 @@
 
 #include "utf8_advance_forward.h"
 
-static size_t TestCount  = 0;
-static size_t TestFailed = 0;
-
-#define CHECK(cond, msg)          \
-  do {                            \
-    TestCount++;                  \
-    if (!(cond)) {                \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++;               \
-    }                             \
-  } while (0)
+#include "test.h"
 
 // "A é € 𐍈" = 1+2+3+4 = 10 bytes, 4 codepoints 
 static const char   *mixed     = "A\xC3\xA9\xE2\x82\xAC\xF0\x90\x8D\x88";
@@ -126,10 +112,5 @@ int main(void) {
   test_forward_illformed();
   test_forward_null_advanced();
 
-  if (TestFailed)
-    printf("Failed %zu of %zu tests.\n", TestFailed, TestCount);
-  else
-    printf("All %zu tests passed.\n", TestCount);
-
-  return TestFailed ? 1 : 0;
+  return report_results();
 }

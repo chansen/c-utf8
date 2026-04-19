@@ -1,15 +1,10 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-
 #ifdef UTF8_RDFA_64
 #  include "utf8_rdfa64.h"
 #else
 #  include "utf8_rdfa32.h"
 #endif
 
-#include "test_common.h"
+#include "test_util.h"
 
 static utf8_rdfa_state_t rdfa_run(const char *src, size_t len) {
   return utf8_rdfa_run(UTF8_RDFA_ACCEPT, (const unsigned char *)src, len);
@@ -39,13 +34,6 @@ static bool rdfa_accepts(const char *src, size_t len) {
   } \
 } while (0)
 
-#define CHECK(cond, msg) do { \
-  TestCount++; \
-  if (!(cond)) { \
-    printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-    TestFailed++; \
-  } \
-} while (0)
 
 static void
 test_unicode_scalar_value(void) {

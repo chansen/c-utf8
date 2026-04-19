@@ -1,22 +1,8 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-
 #include "utf8_rdfa64.h"
 #include "utf8_decode_prev.h"
 #include "utf8_decode_prev_unsafe.h"
 
-#include "test_common.h"
-
-#define CHECK(cond, msg)          \
-  do {                            \
-    TestCount++;                  \
-    if (!(cond)) {                \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++;               \
-    }                             \
-  } while (0)
+#include "test.h"
 
 static void test_end(void) {
   uint32_t cp = 0x1234;

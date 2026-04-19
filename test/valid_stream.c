@@ -1,6 +1,3 @@
-#include <stddef.h>
-#include <stdio.h>
-
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
 #else
@@ -8,7 +5,7 @@
 #endif
 
 #include "utf8_valid_stream.h"
-#include "test_common.h"
+#include "test.h"
 
 static void
 stream_check(const char* desc,

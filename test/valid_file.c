@@ -1,7 +1,5 @@
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <ctype.h>
 #include <assert.h>
 
@@ -13,8 +11,7 @@
 
 #include "utf8_valid.h"
 
-static size_t TestCount = 0;
-static size_t TestFailed = 0;
+#include "test.h"
 
 /*
  * Parse a hex string like "C2 A9 80" into bytes.
@@ -140,10 +137,5 @@ int main(int argc, char** argv) {
 
   run_file(argv[1]);
 
-  if (TestFailed)
-    printf("Failed %zu tests of %zu.\n", TestFailed, TestCount);
-  else
-    printf("Passed %zu tests.\n", TestCount);
-
-  return TestFailed ? 1 : 0;
+  return report_results();
 }

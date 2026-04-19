@@ -1,16 +1,10 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <assert.h>
-
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
 #else
 #  include "utf8_dfa32.h"
 #endif
 
-#include "test_common.h"
+#include "test_util.h"
 
 static utf8_dfa_state_t dfa_run(const char *src, size_t len) {
   return utf8_dfa_run(UTF8_DFA_ACCEPT, (const unsigned char *)src, len);
@@ -40,13 +34,7 @@ static bool dfa_accepts(const char *src, size_t len) {
   } \
 } while (0)
   
-#define CHECK(cond, msg) do { \
-  TestCount++; \
-  if (!(cond)) { \
-    printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-    TestFailed++; \
-  } \
-} while (0)
+
 
 static void
 test_unicode_scalar_value(void) {

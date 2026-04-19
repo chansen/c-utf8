@@ -1,21 +1,7 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-
 #include "utf8_rdfa64.h"
 #include "utf8_decode_prev.h"
 
-static size_t TestCount  = 0;
-static size_t TestFailed = 0;
-
-#define CHECK(cond, msg) do { \
-  TestCount++; \
-  if (!(cond)) { \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++; \
-  } \
-} while (0)
+#include "test.h"
 
 static void test_prev_end(void) {
   uint32_t cp = 0x1234;
@@ -201,10 +187,5 @@ int main(void) {
   test_replace_truncated();
   test_replace_sequence();
 
-  if (TestFailed)
-    printf("Failed %zu of %zu tests.\n", TestFailed, TestCount);
-  else
-    printf("All %zu tests passed.\n", TestCount);
-
-  return TestFailed ? 1 : 0;
+  return report_results();
 }

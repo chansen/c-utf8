@@ -1,23 +1,9 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "utf8_dfa64.h"
 #include "utf8_transcode.h"
 
-static size_t TestCount  = 0;
-static size_t TestFailed = 0;
-
-#define CHECK(cond, msg)          \
-  do {                            \
-    TestCount++;                  \
-    if (!(cond)) {                \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++;               \
-    }                             \
-  } while (0)
+#include "test.h"
 
 static void test_decode_empty(void) {
   uint32_t dst[4];
@@ -267,10 +253,5 @@ int main(void) {
   test_replace_exhausted();
   test_replace_surrogate();
 
-  if (TestFailed)
-    printf("Failed %zu of %zu tests.\n", TestFailed, TestCount);
-  else
-    printf("All %zu tests passed.\n", TestCount);
-
-  return TestFailed ? 1 : 0;
+  return report_results();
 }

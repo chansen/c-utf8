@@ -1,6 +1,3 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "utf8_distance_unsafe.h"
@@ -12,16 +9,7 @@
 #endif
 #include "utf8_distance.h"
 
-#include "test_common.h"
-
-#define CHECK(cond, msg)          \
-  do {                            \
-    TestCount++;                  \
-    if (!(cond)) {                \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++;               \
-    }                             \
-  } while (0)
+#include "test.h"
 
 static void test_empty(void) {
   CHECK(utf8_distance_unsafe("", 0) == 0, "empty: 0");

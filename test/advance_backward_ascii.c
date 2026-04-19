@@ -1,7 +1,3 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-
 #ifdef UTF8_RDFA_64
 #  include "utf8_rdfa64.h"
 #else
@@ -10,16 +6,7 @@
 
 #include "utf8_advance_backward.h"
 
-#include "test_common.h"
-
-#define CHECK(cond, msg)          \
-  do {                            \
-    TestCount++;                  \
-    if (!(cond)) {                \
-      printf("FAIL: %s (line %d)\n", msg, __LINE__); \
-      TestFailed++;               \
-    }                             \
-  } while (0)
+#include "test.h"
 
 static void test_stop_at_stride(void) {
   size_t advanced;

@@ -1,9 +1,4 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
@@ -11,7 +6,7 @@
 #  include "utf8_dfa32.h"
 #endif
 
-#include "test_common.h"
+#include "test_util.h"
 
 static utf8_dfa_state_t dual_run(const char *src, size_t len) {
   return utf8_dfa_run_dual(UTF8_DFA_ACCEPT, (const unsigned char *)src, len);
