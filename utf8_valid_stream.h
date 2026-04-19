@@ -104,7 +104,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
                         const char* src,
                         size_t len,
                         bool eof) {
-  const unsigned char* p = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   utf8_dfa_state_t state = s->state;
   size_t carried = s->pending;
   size_t consumed = 0;
@@ -113,7 +113,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
 
   if (state == UTF8_DFA_ACCEPT && len >= 16) {
     do {
-      if (utf8_dfa_run16(UTF8_DFA_ACCEPT, p + pos) != UTF8_DFA_ACCEPT)
+      if (utf8_dfa_run16(UTF8_DFA_ACCEPT, bytes + pos) != UTF8_DFA_ACCEPT)
         break;
       pos += 16;
     } while (len - pos >= 16);
@@ -121,7 +121,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
   }
 
   for (; pos < len; pos++) {
-    state = utf8_dfa_step(state, p[pos]);
+    state = utf8_dfa_step(state, bytes[pos]);
     chunk_bytes++;
 
     if (state == UTF8_DFA_ACCEPT) {

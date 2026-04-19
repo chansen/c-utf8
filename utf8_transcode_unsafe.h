@@ -58,45 +58,45 @@ static inline utf8_transcode_result_t utf8_transcode_utf32_unsafe(const char *sr
                                                                   size_t src_len,
                                                                   uint32_t *dst,
                                                                   size_t dst_len) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   size_t r = 0, w = 0;
 
   while (r < src_len && w < dst_len) {
-    unsigned int c = s[r];
+    unsigned int c = bytes[r];
     if (c < 0x80u) {
       while (r + 8 <= src_len && w + 8 <= dst_len) {
         uint64_t v;
-        memcpy(&v, s + r, sizeof(v));
+        memcpy(&v, bytes + r, sizeof(v));
         if (v & UINT64_C(0x8080808080808080))
           break;
         for (size_t i = 0; i < 8; i++)
-          dst[w + i] = s[r + i];
+          dst[w + i] = bytes[r + i];
         r += 8;
         w += 8;
       }
-      while (r < src_len && w < dst_len && s[r] < 0x80u)
-        dst[w++] = s[r++];
+      while (r < src_len && w < dst_len && bytes[r] < 0x80u)
+        dst[w++] = bytes[r++];
     } else if (c < 0xE0u) {
       do {
-        dst[w++] = ((uint32_t)(s[r + 0] & 0x1Fu) << 6)
-                 |  (uint32_t)(s[r + 1] & 0x3Fu);
+        dst[w++] = ((uint32_t)(bytes[r + 0] & 0x1Fu) << 6)
+                 |  (uint32_t)(bytes[r + 1] & 0x3Fu);
         r += 2;
-      } while (r < src_len && w < dst_len && (unsigned)s[r] - 0xC0u < 0x20u);
+      } while (r < src_len && w < dst_len && (unsigned)bytes[r] - 0xC0u < 0x20u);
     } else if (c < 0xF0u) {
       do {
-        dst[w++] = ((uint32_t)(s[r + 0] & 0x0Fu) << 12)
-                 | ((uint32_t)(s[r + 1] & 0x3Fu) << 6)
-                 |  (uint32_t)(s[r + 2] & 0x3Fu);
+        dst[w++] = ((uint32_t)(bytes[r + 0] & 0x0Fu) << 12)
+                 | ((uint32_t)(bytes[r + 1] & 0x3Fu) << 6)
+                 |  (uint32_t)(bytes[r + 2] & 0x3Fu);
         r += 3;
-      } while (r < src_len && w < dst_len && (unsigned)s[r] - 0xE0u < 0x10u);
+      } while (r < src_len && w < dst_len && (unsigned)bytes[r] - 0xE0u < 0x10u);
     } else {
       do {
-        dst[w++] = ((uint32_t)(s[r + 0] & 0x07u) << 18)
-                 | ((uint32_t)(s[r + 1] & 0x3Fu) << 12)
-                 | ((uint32_t)(s[r + 2] & 0x3Fu) << 6)
-                 |  (uint32_t)(s[r + 3] & 0x3Fu);
+        dst[w++] = ((uint32_t)(bytes[r + 0] & 0x07u) << 18)
+                 | ((uint32_t)(bytes[r + 1] & 0x3Fu) << 12)
+                 | ((uint32_t)(bytes[r + 2] & 0x3Fu) << 6)
+                 |  (uint32_t)(bytes[r + 3] & 0x3Fu);
         r += 4;
-      } while (r < src_len && w < dst_len && (unsigned)s[r] >= 0xF0u);
+      } while (r < src_len && w < dst_len && (unsigned)bytes[r] >= 0xF0u);
     }
   }
 
@@ -136,56 +136,56 @@ static inline utf8_transcode_result_t utf8_transcode_utf16_unsafe(const char *sr
                                                                   size_t src_len,
                                                                   uint16_t *dst,
                                                                   size_t dst_len) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   size_t r = 0, w = 0, n = 0;
 
   while (r < src_len && w < dst_len) {
-    unsigned int c = s[r];
+    unsigned int c = bytes[r];
     if (c < 0x80u) {
       while (r + 8 <= src_len && w + 8 <= dst_len) {
         uint64_t v;
-        memcpy(&v, s + r, sizeof(v));
+        memcpy(&v, bytes + r, sizeof(v));
         if (v & UINT64_C(0x8080808080808080))
           break;
         for (size_t i = 0; i < 8; i++)
-          dst[w + i] = s[r + i];
+          dst[w + i] = bytes[r + i];
         r += 8;
         w += 8;
         n += 8;
       }
-      while (r < src_len && w < dst_len && s[r] < 0x80u) {
-        dst[w++] = s[r++];
+      while (r < src_len && w < dst_len && bytes[r] < 0x80u) {
+        dst[w++] = bytes[r++];
         n++;
       }
     } else if (c < 0xE0u) {
       do {
-        dst[w++] = (uint16_t)(((uint32_t)(s[r + 0] & 0x1Fu) << 6)
-                             | (uint32_t)(s[r + 1] & 0x3Fu));
+        dst[w++] = (uint16_t)(((uint32_t)(bytes[r + 0] & 0x1Fu) << 6)
+                             | (uint32_t)(bytes[r + 1] & 0x3Fu));
         r += 2;
         n++;
-      } while (r < src_len && w < dst_len && (unsigned)s[r] - 0xC0u < 0x20u);
+      } while (r < src_len && w < dst_len && (unsigned)bytes[r] - 0xC0u < 0x20u);
     } else if (c < 0xF0u) {
       do {
-        dst[w++] = (uint16_t)(((uint32_t)(s[r + 0] & 0x0Fu) << 12)
-                            | ((uint32_t)(s[r + 1] & 0x3Fu) << 6)
-                            |  (uint32_t)(s[r + 2] & 0x3Fu));
+        dst[w++] = (uint16_t)(((uint32_t)(bytes[r + 0] & 0x0Fu) << 12)
+                            | ((uint32_t)(bytes[r + 1] & 0x3Fu) << 6)
+                            |  (uint32_t)(bytes[r + 2] & 0x3Fu));
         r += 3;
         n++;
-      } while (r < src_len && w < dst_len && (unsigned)s[r] - 0xE0u < 0x10u);
+      } while (r < src_len && w < dst_len && (unsigned)bytes[r] - 0xE0u < 0x10u);
     } else {
       do {
         if (w + 1 >= dst_len)
           goto exhausted;
-        uint32_t cp = ((uint32_t)(s[r + 0] & 0x07u) << 18)
-                    | ((uint32_t)(s[r + 1] & 0x3Fu) << 12)
-                    | ((uint32_t)(s[r + 2] & 0x3Fu) << 6)
-                    |  (uint32_t)(s[r + 3] & 0x3Fu);
+        uint32_t cp = ((uint32_t)(bytes[r + 0] & 0x07u) << 18)
+                    | ((uint32_t)(bytes[r + 1] & 0x3Fu) << 12)
+                    | ((uint32_t)(bytes[r + 2] & 0x3Fu) << 6)
+                    |  (uint32_t)(bytes[r + 3] & 0x3Fu);
         cp -= 0x10000u;
         dst[w++] = (uint16_t)(0xD800u + (cp >> 10));
         dst[w++] = (uint16_t)(0xDC00u + (cp & 0x3FFu));
         r += 4;
         n++;
-      } while (r < src_len && (unsigned)s[r] >= 0xF0u);
+      } while (r < src_len && (unsigned)bytes[r] >= 0xF0u);
     }
   }
 

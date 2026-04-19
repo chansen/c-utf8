@@ -43,22 +43,22 @@ extern "C" {
  * src[0..len) contains ill-formed UTF-8.
  */
 static inline size_t utf8_distance(const char *src, size_t len) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
   size_t count = 0;
 
-  for (;len >= 4; len -= 4, s += 4) {
-    utf8_dfa_state_t s0 = utf8_dfa_step(state, s[0]);
-    utf8_dfa_state_t s1 = utf8_dfa_step(s0,    s[1]);
-    utf8_dfa_state_t s2 = utf8_dfa_step(s1,    s[2]);
-    utf8_dfa_state_t s3 = utf8_dfa_step(s2,    s[3]);
+  for (;len >= 4; len -= 4, bytes += 4) {
+    utf8_dfa_state_t s0 = utf8_dfa_step(state, bytes[0]);
+    utf8_dfa_state_t s1 = utf8_dfa_step(s0,    bytes[1]);
+    utf8_dfa_state_t s2 = utf8_dfa_step(s1,    bytes[2]);
+    utf8_dfa_state_t s3 = utf8_dfa_step(s2,    bytes[3]);
     count += (s0 == UTF8_DFA_ACCEPT) + (s1 == UTF8_DFA_ACCEPT)
            + (s2 == UTF8_DFA_ACCEPT) + (s3 == UTF8_DFA_ACCEPT);
     state = s3;
   }
 
   for (size_t i = 0; i < len; i++) {
-    state = utf8_dfa_step(state, s[i]);
+    state = utf8_dfa_step(state, bytes[i]);
     if (state == UTF8_DFA_ACCEPT)
       count++;
   }
@@ -78,28 +78,28 @@ static inline size_t utf8_distance(const char *src, size_t len) {
  * src[0..len) contains ill-formed UTF-8.
  */
 static inline size_t utf8_distance_ascii(const char *src, size_t len) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
   size_t count = 0;
 
-  for (; len >= 8; len -= 8, s += 8) {
+  for (; len >= 8; len -= 8, bytes += 8) {
     if (state == UTF8_DFA_ACCEPT) {
       uint64_t v;
-      memcpy(&v, s, sizeof(v));
+      memcpy(&v, bytes, sizeof(v));
       if ((v & UINT64_C(0x8080808080808080)) == 0) {
         count += 8;
         continue;
       }
     }
     {
-      utf8_dfa_state_t s0 = utf8_dfa_step(state, s[0]);
-      utf8_dfa_state_t s1 = utf8_dfa_step(s0,    s[1]);
-      utf8_dfa_state_t s2 = utf8_dfa_step(s1,    s[2]);
-      utf8_dfa_state_t s3 = utf8_dfa_step(s2,    s[3]);
-      utf8_dfa_state_t s4 = utf8_dfa_step(s3,    s[4]);
-      utf8_dfa_state_t s5 = utf8_dfa_step(s4,    s[5]);
-      utf8_dfa_state_t s6 = utf8_dfa_step(s5,    s[6]);
-      utf8_dfa_state_t s7 = utf8_dfa_step(s6,    s[7]);
+      utf8_dfa_state_t s0 = utf8_dfa_step(state, bytes[0]);
+      utf8_dfa_state_t s1 = utf8_dfa_step(s0,    bytes[1]);
+      utf8_dfa_state_t s2 = utf8_dfa_step(s1,    bytes[2]);
+      utf8_dfa_state_t s3 = utf8_dfa_step(s2,    bytes[3]);
+      utf8_dfa_state_t s4 = utf8_dfa_step(s3,    bytes[4]);
+      utf8_dfa_state_t s5 = utf8_dfa_step(s4,    bytes[5]);
+      utf8_dfa_state_t s6 = utf8_dfa_step(s5,    bytes[6]);
+      utf8_dfa_state_t s7 = utf8_dfa_step(s6,    bytes[7]);
       count += (s0 == UTF8_DFA_ACCEPT) + (s1 == UTF8_DFA_ACCEPT)
              + (s2 == UTF8_DFA_ACCEPT) + (s3 == UTF8_DFA_ACCEPT)
              + (s4 == UTF8_DFA_ACCEPT) + (s5 == UTF8_DFA_ACCEPT)
@@ -109,7 +109,7 @@ static inline size_t utf8_distance_ascii(const char *src, size_t len) {
   }
 
   for (size_t i = 0; i < len; i++) {
-    state = utf8_dfa_step(state, s[i]);
+    state = utf8_dfa_step(state, bytes[i]);
     if (state == UTF8_DFA_ACCEPT)
       count++;
   }

@@ -64,7 +64,7 @@ static inline utf8_transcode_result_t utf8_transcode_utf16(const char *src,
                                                            size_t src_len,
                                                            uint16_t *dst,
                                                            size_t dst_len) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   size_t pos = 0;
   size_t decoded = 0;
   size_t written = 0;
@@ -75,7 +75,7 @@ static inline utf8_transcode_result_t utf8_transcode_utf16(const char *src,
     size_t start = pos;
 
     do {
-      state = utf8_dfa_step_decode(state, s[pos++], &cp);
+      state = utf8_dfa_step_decode(state, bytes[pos++], &cp);
       if (state == UTF8_DFA_ACCEPT) {
         if (cp <= 0xFFFFu) {
           dst[written++] = (uint16_t)cp;
@@ -124,7 +124,7 @@ static inline utf8_transcode_result_t utf8_transcode_utf16_replace(const char *s
                                                                    size_t src_len,
                                                                    uint16_t *dst,
                                                                    size_t dst_len) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   size_t pos = 0;
   size_t decoded = 0;
   size_t written = 0;
@@ -135,7 +135,7 @@ static inline utf8_transcode_result_t utf8_transcode_utf16_replace(const char *s
     size_t start = pos;
 
     do {
-      state = utf8_dfa_step_decode(state, s[pos++], &cp);
+      state = utf8_dfa_step_decode(state, bytes[pos++], &cp);
       if (state == UTF8_DFA_ACCEPT) {
         if (cp <= 0xFFFFu) {
           dst[written++] = (uint16_t)cp;
@@ -206,7 +206,7 @@ static inline utf8_transcode_result_t utf8_transcode_utf32(const char* src,
                                                            size_t src_len,
                                                            uint32_t* dst,
                                                            size_t dst_len) {
-  const unsigned char* s = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   size_t pos = 0;
   size_t decoded = 0;
 
@@ -216,7 +216,7 @@ static inline utf8_transcode_result_t utf8_transcode_utf32(const char* src,
     size_t start = pos;
 
     do {
-      state = utf8_dfa_step_decode(state, s[pos++], &cp);
+      state = utf8_dfa_step_decode(state, bytes[pos++], &cp);
       if (state == UTF8_DFA_ACCEPT) {
         dst[decoded++] = cp;
         goto next;
@@ -252,7 +252,7 @@ static inline utf8_transcode_result_t utf8_transcode_utf32_replace(const char* s
                                                                    size_t src_len,
                                                                    uint32_t* dst,
                                                                    size_t dst_len) {
-  const unsigned char* s = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   size_t pos = 0;
   size_t decoded = 0;
 
@@ -262,7 +262,7 @@ static inline utf8_transcode_result_t utf8_transcode_utf32_replace(const char* s
     size_t start = pos;
 
     do {
-      state = utf8_dfa_step_decode(state, s[pos++], &cp);
+      state = utf8_dfa_step_decode(state, bytes[pos++], &cp);
       if (state == UTF8_DFA_ACCEPT) {
         dst[decoded++] = cp;
         goto next;

@@ -385,39 +385,39 @@ static const utf8_dfa_state_t utf8_dfa[256] = {
 #undef F4_ROW
 
 static inline utf8_dfa_state_t utf8_dfa_step(utf8_dfa_state_t state,
-                                             unsigned char c) {
-  return (utf8_dfa[c] >> state) & 63;
+                                             uint8_t byte) {
+  return (utf8_dfa[byte] >> state) & 63;
 }
 
 static inline utf8_dfa_state_t utf8_dfa_step_decode(utf8_dfa_state_t state,
-                                                    unsigned char c,
+                                                    uint8_t byte,
                                                     uint32_t* codepoint) {
-  utf8_dfa_state_t row = utf8_dfa[c];
-  *codepoint = (*codepoint << 6) | (c & (uint32_t)(row >> 56));
+  utf8_dfa_state_t row = utf8_dfa[byte];
+  *codepoint = (*codepoint << 6) | (byte & (uint32_t)(row >> 56));
   return (row >> state) & 63;
 }
 
 static inline utf8_dfa_state_t utf8_dfa_run(utf8_dfa_state_t state,
-                                            const unsigned char* src,
+                                            const uint8_t* bytes,
                                             size_t len) {
   for (size_t i = 0; i < len; i++)
-    state = utf8_dfa[src[i]] >> (state & 63);
+    state = utf8_dfa[bytes[i]] >> (state & 63);
   return state & 63;
 }
 
 static inline utf8_dfa_state_t utf8_dfa_run16(utf8_dfa_state_t state,
-                                              const unsigned char* src) {
+                                              const uint8_t* bytes) {
   #pragma GCC unroll 16
   for (size_t i = 0; i < 16; i++)
-    state = utf8_dfa[src[i]] >> (state & 63);
+    state = utf8_dfa[bytes[i]] >> (state & 63);
   return state & 63;
 }
 
 static inline utf8_dfa_state_t utf8_dfa_run_dual(utf8_dfa_state_t state,
-                                                 const unsigned char *src,
+                                                 const uint8_t *bytes,
                                                  size_t len) {
   size_t mid = len / 2;
-  while (mid > 0 && (src[mid] & 0xC0) == 0x80)
+  while (mid > 0 && (bytes[mid] & 0xC0) == 0x80)
     mid--;
 
   utf8_dfa_state_t s0 = state;
@@ -425,12 +425,12 @@ static inline utf8_dfa_state_t utf8_dfa_run_dual(utf8_dfa_state_t state,
 
   #pragma GCC unroll 4
   for (size_t i = 0, j = mid; i < mid; i++, j++) {
-    s0 = utf8_dfa[src[i]] >> (s0 & 63);
-    s1 = utf8_dfa[src[j]] >> (s1 & 63);
+    s0 = utf8_dfa[bytes[i]] >> (s0 & 63);
+    s1 = utf8_dfa[bytes[j]] >> (s1 & 63);
   }
 
   for (size_t j = mid * 2; j < len; j++)
-    s1 = utf8_dfa[src[j]] >> (s1 & 63);
+    s1 = utf8_dfa[bytes[j]] >> (s1 & 63);
 
   s0 &= 63;
   s1 &= 63;
@@ -441,14 +441,14 @@ static inline utf8_dfa_state_t utf8_dfa_run_dual(utf8_dfa_state_t state,
 }
 
 static inline utf8_dfa_state_t utf8_dfa_run_triple(utf8_dfa_state_t state,
-                                                   const unsigned char* src,
+                                                   const uint8_t* bytes,
                                                    size_t len) {
   size_t m0 = len / 3;
   size_t m1 = len * 2 / 3;
 
-  while (m0 > 0 && (src[m0] & 0xC0) == 0x80)
+  while (m0 > 0 && (bytes[m0] & 0xC0) == 0x80)
     m0--;
-  while (m1 > m0 && (src[m1] & 0xC0) == 0x80)
+  while (m1 > m0 && (bytes[m1] & 0xC0) == 0x80)
     m1--;
 
   size_t len0 = m0;
@@ -463,17 +463,17 @@ static inline utf8_dfa_state_t utf8_dfa_run_triple(utf8_dfa_state_t state,
   utf8_dfa_state_t s2 = UTF8_DFA_ACCEPT;
 
   for (size_t i = 0; i < n; i++) {
-    s0 = utf8_dfa[src[i]] >> (s0 & 63);
-    s1 = utf8_dfa[src[m0 + i]] >> (s1 & 63);
-    s2 = utf8_dfa[src[m1 + i]] >> (s2 & 63);
+    s0 = utf8_dfa[bytes[i]] >> (s0 & 63);
+    s1 = utf8_dfa[bytes[m0 + i]] >> (s1 & 63);
+    s2 = utf8_dfa[bytes[m1 + i]] >> (s2 & 63);
   }
 
   for (size_t i = n; i < len0; i++)
-    s0 = utf8_dfa[src[i]] >> (s0 & 63);
+    s0 = utf8_dfa[bytes[i]] >> (s0 & 63);
   for (size_t i = n; i < len1; i++)
-    s1 = utf8_dfa[src[m0 + i]] >> (s1 & 63);
+    s1 = utf8_dfa[bytes[m0 + i]] >> (s1 & 63);
   for (size_t i = n; i < len2; i++)
-    s2 = utf8_dfa[src[m1 + i]] >> (s2 & 63);
+    s2 = utf8_dfa[bytes[m1 + i]] >> (s2 & 63);
 
   s0 &= 63;
   s1 &= 63;

@@ -381,24 +381,24 @@ static const utf8_rdfa_state_t utf8_rdfa[256] = {
 #undef F4_ROW
 
 static inline utf8_rdfa_state_t utf8_rdfa_step(utf8_rdfa_state_t state,
-                                               unsigned char c) {
-  return (utf8_rdfa[c] >> state) & 63;
+                                               uint8_t byte) {
+  return (utf8_rdfa[byte] >> state) & 63;
 }
 
 static inline utf8_rdfa_state_t utf8_rdfa_step_decode(utf8_rdfa_state_t state,
-                                                      unsigned char c,
+                                                      uint8_t byte,
                                                       uint32_t* codepoint) {
-  utf8_rdfa_state_t row = utf8_rdfa[c];
+  utf8_rdfa_state_t row = utf8_rdfa[byte];
   uint32_t shift = ((state >> 2) & 3) * 6;
-  *codepoint = *codepoint | (c & (uint32_t)(row >> 56)) << shift;
+  *codepoint = *codepoint | (byte & (uint32_t)(row >> 56)) << shift;
   return (row >> state) & 63;
 }
 
 static inline utf8_rdfa_state_t utf8_rdfa_run(utf8_rdfa_state_t state,
-                                              const unsigned char* src,
+                                              const uint8_t* bytes,
                                               size_t len) {
   while (len > 0)
-    state = utf8_rdfa[src[--len]] >> (state & 63);
+    state = utf8_rdfa[bytes[--len]] >> (state & 63);
   return state & 63;
 }
 

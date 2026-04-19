@@ -176,16 +176,16 @@ static inline size_t utf8_swar_count_codepoints_1x8(const void *src) {
  * mark words are accumulated and folded every 63 blocks (63*4 = 252 < 255).
  */
 static inline size_t utf8_swar_count_codepoints_Nx32(const void *src, size_t n) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   size_t count = 0;
 
 #if defined(UTF8_SWAR_POPCNT)
-  for (size_t i = 0; i < n; i++, s += 32) {
+  for (size_t i = 0; i < n; i++, bytes += 32) {
     uint64_t w0, w1, w2, w3;
-    memcpy(&w0, s +  0, 8);
-    memcpy(&w1, s +  8, 8);
-    memcpy(&w2, s + 16, 8);
-    memcpy(&w3, s + 24, 8);
+    memcpy(&w0, bytes +  0, 8);
+    memcpy(&w1, bytes +  8, 8);
+    memcpy(&w2, bytes + 16, 8);
+    memcpy(&w3, bytes + 24, 8);
     count += utf8_swar_hsum_bits8(utf8_swar_mark_non_continuations8(w0))
            + utf8_swar_hsum_bits8(utf8_swar_mark_non_continuations8(w1))
            + utf8_swar_hsum_bits8(utf8_swar_mark_non_continuations8(w2))
@@ -196,12 +196,12 @@ static inline size_t utf8_swar_count_codepoints_Nx32(const void *src, size_t n) 
     size_t batch = n < 63 ? n : 63;
     n -= batch;
     uint64_t acc = 0;
-    for (size_t i = 0; i < batch; i++, s += 32) {
+    for (size_t i = 0; i < batch; i++, bytes += 32) {
       uint64_t w0, w1, w2, w3;
-      memcpy(&w0, s +  0, 8);
-      memcpy(&w1, s +  8, 8);
-      memcpy(&w2, s + 16, 8);
-      memcpy(&w3, s + 24, 8);
+      memcpy(&w0, bytes +  0, 8);
+      memcpy(&w1, bytes +  8, 8);
+      memcpy(&w2, bytes + 16, 8);
+      memcpy(&w3, bytes + 24, 8);
       acc += utf8_swar_mark_non_continuations8(w0)
            + utf8_swar_mark_non_continuations8(w1)
            + utf8_swar_mark_non_continuations8(w2)

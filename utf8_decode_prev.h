@@ -57,13 +57,13 @@ static inline int utf8_decode_prev(const char *src,
  if (len == 0)
    return 0;
 
- const unsigned char *s = (const unsigned char *)src;
+ const uint8_t *bytes = (const uint8_t *)src;
  utf8_rdfa_state_t state = UTF8_RDFA_ACCEPT;
  uint32_t cp = 0;
  size_t pos = len;
 
  do {
-   state = utf8_rdfa_step_decode(state, s[--pos], &cp);
+   state = utf8_rdfa_step_decode(state, bytes[--pos], &cp);
    if (state == UTF8_RDFA_ACCEPT) {
      *codepoint = cp;
      return (int)(len - pos);
@@ -96,13 +96,13 @@ static inline int utf8_decode_prev_replace(const char *src,
  if (len == 0)
    return 0;
 
- const unsigned char *s = (const unsigned char *)src;
+ const uint8_t *bytes = (const uint8_t *)src;
  utf8_rdfa_state_t state = UTF8_RDFA_ACCEPT;
  uint32_t cp = 0;
  size_t pos = len;
 
  do {
-   state = utf8_rdfa_step_decode(state, s[--pos], &cp);
+   state = utf8_rdfa_step_decode(state, bytes[--pos], &cp);
    if (state == UTF8_RDFA_ACCEPT) {
      *codepoint = cp;
      return (int)(len - pos);

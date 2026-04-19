@@ -49,16 +49,16 @@ static inline size_t utf8_advance_forward(const char *src,
                                           size_t len,
                                           size_t distance,
                                           size_t *advanced) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
   size_t pos = 0;
   size_t count = 0;
 
   while (distance - count >= 4 && len - pos >= 4) {
-    utf8_dfa_state_t s0 = utf8_dfa_step(state, s[pos + 0]);
-    utf8_dfa_state_t s1 = utf8_dfa_step(s0,    s[pos + 1]);
-    utf8_dfa_state_t s2 = utf8_dfa_step(s1,    s[pos + 2]);
-    utf8_dfa_state_t s3 = utf8_dfa_step(s2,    s[pos + 3]);
+    utf8_dfa_state_t s0 = utf8_dfa_step(state, bytes[pos + 0]);
+    utf8_dfa_state_t s1 = utf8_dfa_step(s0,    bytes[pos + 1]);
+    utf8_dfa_state_t s2 = utf8_dfa_step(s1,    bytes[pos + 2]);
+    utf8_dfa_state_t s3 = utf8_dfa_step(s2,    bytes[pos + 3]);
     count += (s0 == UTF8_DFA_ACCEPT) + (s1 == UTF8_DFA_ACCEPT)
            + (s2 == UTF8_DFA_ACCEPT) + (s3 == UTF8_DFA_ACCEPT);
     state = s3;
@@ -66,7 +66,7 @@ static inline size_t utf8_advance_forward(const char *src,
   }
 
   while (pos < len && count < distance) {
-    state = utf8_dfa_step(state, s[pos++]);
+    state = utf8_dfa_step(state, bytes[pos++]);
     if (state == UTF8_DFA_ACCEPT)
       count++;
   }
@@ -94,7 +94,7 @@ static inline size_t utf8_advance_forward_ascii(const char *src,
                                                 size_t len,
                                                 size_t distance,
                                                 size_t *advanced) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
   size_t pos = 0;
   size_t count = 0;
@@ -102,7 +102,7 @@ static inline size_t utf8_advance_forward_ascii(const char *src,
   while (distance - count >= 8 && len - pos >= 8) {
     if (state == UTF8_DFA_ACCEPT) {
       uint64_t v;
-      memcpy(&v, s + pos, sizeof(v));
+      memcpy(&v, bytes + pos, sizeof(v));
       if ((v & UINT64_C(0x8080808080808080)) == 0) {
         count += 8;
         pos += 8;
@@ -110,14 +110,14 @@ static inline size_t utf8_advance_forward_ascii(const char *src,
       }
     }
     {
-      utf8_dfa_state_t s0 = utf8_dfa_step(state, s[pos + 0]);
-      utf8_dfa_state_t s1 = utf8_dfa_step(s0,    s[pos + 1]);
-      utf8_dfa_state_t s2 = utf8_dfa_step(s1,    s[pos + 2]);
-      utf8_dfa_state_t s3 = utf8_dfa_step(s2,    s[pos + 3]);
-      utf8_dfa_state_t s4 = utf8_dfa_step(s3,    s[pos + 4]);
-      utf8_dfa_state_t s5 = utf8_dfa_step(s4,    s[pos + 5]);
-      utf8_dfa_state_t s6 = utf8_dfa_step(s5,    s[pos + 6]);
-      utf8_dfa_state_t s7 = utf8_dfa_step(s6,    s[pos + 7]);
+      utf8_dfa_state_t s0 = utf8_dfa_step(state, bytes[pos + 0]);
+      utf8_dfa_state_t s1 = utf8_dfa_step(s0,    bytes[pos + 1]);
+      utf8_dfa_state_t s2 = utf8_dfa_step(s1,    bytes[pos + 2]);
+      utf8_dfa_state_t s3 = utf8_dfa_step(s2,    bytes[pos + 3]);
+      utf8_dfa_state_t s4 = utf8_dfa_step(s3,    bytes[pos + 4]);
+      utf8_dfa_state_t s5 = utf8_dfa_step(s4,    bytes[pos + 5]);
+      utf8_dfa_state_t s6 = utf8_dfa_step(s5,    bytes[pos + 6]);
+      utf8_dfa_state_t s7 = utf8_dfa_step(s6,    bytes[pos + 7]);
       count += (s0 == UTF8_DFA_ACCEPT) + (s1 == UTF8_DFA_ACCEPT)
              + (s2 == UTF8_DFA_ACCEPT) + (s3 == UTF8_DFA_ACCEPT)
              + (s4 == UTF8_DFA_ACCEPT) + (s5 == UTF8_DFA_ACCEPT)
@@ -128,7 +128,7 @@ static inline size_t utf8_advance_forward_ascii(const char *src,
   }
 
   while (pos < len && count < distance) {
-    state = utf8_dfa_step(state, s[pos++]);
+    state = utf8_dfa_step(state, bytes[pos++]);
     if (state == UTF8_DFA_ACCEPT)
       count++;
   }

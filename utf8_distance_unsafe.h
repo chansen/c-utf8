@@ -41,26 +41,26 @@ extern "C" {
  * then SWAR 8-byte blocks, then a scalar tail for the remaining 0-7 bytes.
  */
 static inline size_t utf8_distance_unsafe(const char *src, size_t len) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   size_t pos = 0, count = 0;
 
   size_t n32 = len / 32;
   if (n32) {
 #ifdef UTF8_SIMD_AVAILABLE
-    count += utf8_simd_count_codepoints_Nx32(s, n32);
+    count += utf8_simd_count_codepoints_Nx32(bytes, n32);
 #else
-    count += utf8_swar_count_codepoints_Nx32(s, n32);
+    count += utf8_swar_count_codepoints_Nx32(bytes, n32);
 #endif
     pos += n32 * 32;
   }
 
   while (pos + 8 <= len) {
-    count += utf8_swar_count_codepoints_1x8(s + pos);
+    count += utf8_swar_count_codepoints_1x8(bytes + pos);
     pos += 8;
   }
 
   for (; pos < len; pos++)
-    count += ((int8_t)s[pos] > -65);
+    count += ((int8_t)bytes[pos] > -65);
 
   return count;
 }

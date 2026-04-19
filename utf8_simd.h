@@ -72,7 +72,7 @@ extern "C" {
  * Returns the number of codepoints in src[0..n*32).
  */
 static inline size_t utf8_simd_count_codepoints_Nx32(const void *src, size_t n) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
 
 #if defined(UTF8_SIMD_HAS_AVX2)
   const __m256i threshold  = _mm256_set1_epi8(-65);
@@ -84,20 +84,20 @@ static inline size_t utf8_simd_count_codepoints_Nx32(const void *src, size_t n) 
     n -= batch;
     __m256i acc8 = zero;
     for (; batch >= 4; batch -= 4) {
-      __m256i v0 = _mm256_loadu_si256((const __m256i *)s);
-      __m256i v1 = _mm256_loadu_si256((const __m256i *)(s + 32));
-      __m256i v2 = _mm256_loadu_si256((const __m256i *)(s + 64));
-      __m256i v3 = _mm256_loadu_si256((const __m256i *)(s + 96));
+      __m256i v0 = _mm256_loadu_si256((const __m256i *)bytes);
+      __m256i v1 = _mm256_loadu_si256((const __m256i *)(bytes + 32));
+      __m256i v2 = _mm256_loadu_si256((const __m256i *)(bytes + 64));
+      __m256i v3 = _mm256_loadu_si256((const __m256i *)(bytes + 96));
       acc8 = _mm256_sub_epi8(acc8, _mm256_cmpgt_epi8(v0, threshold));
       acc8 = _mm256_sub_epi8(acc8, _mm256_cmpgt_epi8(v1, threshold));
       acc8 = _mm256_sub_epi8(acc8, _mm256_cmpgt_epi8(v2, threshold));
       acc8 = _mm256_sub_epi8(acc8, _mm256_cmpgt_epi8(v3, threshold));
-      s += 128;
+      bytes += 128;
     }
     for (; batch > 0; batch--) {
-      __m256i v = _mm256_loadu_si256((const __m256i *)s);
+      __m256i v = _mm256_loadu_si256((const __m256i *)bytes);
       acc8 = _mm256_sub_epi8(acc8, _mm256_cmpgt_epi8(v, threshold));
-      s += 32;
+      bytes += 32;
     }
     acc64 = _mm256_add_epi64(acc64, _mm256_sad_epu8(acc8, zero));
   }
@@ -118,25 +118,25 @@ static inline size_t utf8_simd_count_codepoints_Nx32(const void *src, size_t n) 
     n -= batch;
     __m128i acc8 = zero;
     for (; batch >= 2; batch -= 2) {
-      __m128i a0 = _mm_loadu_si128((const __m128i *)s);
-      __m128i a1 = _mm_loadu_si128((const __m128i *)(s + 16));
-      __m128i b0 = _mm_loadu_si128((const __m128i *)(s + 32));
-      __m128i b1 = _mm_loadu_si128((const __m128i *)(s + 48));
+      __m128i a0 = _mm_loadu_si128((const __m128i *)bytes);
+      __m128i a1 = _mm_loadu_si128((const __m128i *)(bytes + 16));
+      __m128i b0 = _mm_loadu_si128((const __m128i *)(bytes + 32));
+      __m128i b1 = _mm_loadu_si128((const __m128i *)(bytes + 48));
       __m128i ca = _mm_add_epi8(_mm_cmpgt_epi8(a0, threshold),
                                 _mm_cmpgt_epi8(a1, threshold));
       __m128i cb = _mm_add_epi8(_mm_cmpgt_epi8(b0, threshold),
                                 _mm_cmpgt_epi8(b1, threshold));
       acc8 = _mm_sub_epi8(acc8, ca);
       acc8 = _mm_sub_epi8(acc8, cb);
-      s += 64;
+      bytes += 64;
     }
     for (; batch > 0; batch--) {
-      __m128i v0 = _mm_loadu_si128((const __m128i *)s);
-      __m128i v1 = _mm_loadu_si128((const __m128i *)(s + 16));
+      __m128i v0 = _mm_loadu_si128((const __m128i *)bytes);
+      __m128i v1 = _mm_loadu_si128((const __m128i *)(bytes + 16));
       __m128i c  = _mm_add_epi8(_mm_cmpgt_epi8(v0, threshold),
                                 _mm_cmpgt_epi8(v1, threshold));
       acc8 = _mm_sub_epi8(acc8, c);
-      s += 32;
+      bytes += 32;
     }
     acc64 = _mm_add_epi64(acc64, _mm_sad_epu8(acc8, zero));
   }
@@ -153,14 +153,14 @@ static inline size_t utf8_simd_count_codepoints_Nx32(const void *src, size_t n) 
     n -= batch;
     uint8x16_t acc8 = vdupq_n_u8(0);
     for (; batch >= 4; batch -= 4) {
-      int8x16_t a0 = vld1q_s8((const int8_t *)s);
-      int8x16_t a1 = vld1q_s8((const int8_t *)(s + 16));
-      int8x16_t b0 = vld1q_s8((const int8_t *)(s + 32));
-      int8x16_t b1 = vld1q_s8((const int8_t *)(s + 48));
-      int8x16_t c0 = vld1q_s8((const int8_t *)(s + 64));
-      int8x16_t c1 = vld1q_s8((const int8_t *)(s + 80));
-      int8x16_t d0 = vld1q_s8((const int8_t *)(s + 96));
-      int8x16_t d1 = vld1q_s8((const int8_t *)(s + 112));
+      int8x16_t a0 = vld1q_s8((const int8_t *)bytes);
+      int8x16_t a1 = vld1q_s8((const int8_t *)(bytes + 16));
+      int8x16_t b0 = vld1q_s8((const int8_t *)(bytes + 32));
+      int8x16_t b1 = vld1q_s8((const int8_t *)(bytes + 48));
+      int8x16_t c0 = vld1q_s8((const int8_t *)(bytes + 64));
+      int8x16_t c1 = vld1q_s8((const int8_t *)(bytes + 80));
+      int8x16_t d0 = vld1q_s8((const int8_t *)(bytes + 96));
+      int8x16_t d1 = vld1q_s8((const int8_t *)(bytes + 112));
       acc8 = vsubq_u8(acc8, vcgtq_s8(a0, threshold));
       acc8 = vsubq_u8(acc8, vcgtq_s8(a1, threshold));
       acc8 = vsubq_u8(acc8, vcgtq_s8(b0, threshold));
@@ -169,14 +169,14 @@ static inline size_t utf8_simd_count_codepoints_Nx32(const void *src, size_t n) 
       acc8 = vsubq_u8(acc8, vcgtq_s8(c1, threshold));
       acc8 = vsubq_u8(acc8, vcgtq_s8(d0, threshold));
       acc8 = vsubq_u8(acc8, vcgtq_s8(d1, threshold));
-      s += 128;
+      bytes += 128;
     }
     for (; batch > 0; batch--) {
-      int8x16_t v0 = vld1q_s8((const int8_t *)s);
-      int8x16_t v1 = vld1q_s8((const int8_t *)(s + 16));
+      int8x16_t v0 = vld1q_s8((const int8_t *)bytes);
+      int8x16_t v1 = vld1q_s8((const int8_t *)(bytes + 16));
       acc8 = vsubq_u8(acc8, vcgtq_s8(v0, threshold));
       acc8 = vsubq_u8(acc8, vcgtq_s8(v1, threshold));
-      s += 32;
+      bytes += 32;
     }
     count += vaddlvq_u8(acc8);
   }

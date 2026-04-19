@@ -44,29 +44,29 @@ static inline int utf8_decode_prev_unsafe(const char *src,
   if (len == 0)
     return 0;
 
-  const unsigned char *s = (const unsigned char *)src;
-  unsigned int c = s[len - 1];
+  const uint8_t *bytes = (const uint8_t *)src;
+  unsigned int c = bytes[len - 1];
 
   if (c < 0x80u) {
     *codepoint = c;
     return 1;
   }
-  else if ((int8_t)s[len - 2] > -65) {
-    *codepoint = ((uint32_t)(s[len - 2] & 0x1Fu) << 6)
-               |  (uint32_t)(s[len - 1] & 0x3Fu);
+  else if ((int8_t)bytes[len - 2] > -65) {
+    *codepoint = ((uint32_t)(bytes[len - 2] & 0x1Fu) << 6)
+               |  (uint32_t)(bytes[len - 1] & 0x3Fu);
     return 2;
   }
-  else if ((int8_t)s[len - 3] > -65) {
-    *codepoint = ((uint32_t)(s[len - 3] & 0x0Fu) << 12)
-               | ((uint32_t)(s[len - 2] & 0x3Fu) << 6)
-               |  (uint32_t)(s[len - 1] & 0x3Fu);
+  else if ((int8_t)bytes[len - 3] > -65) {
+    *codepoint = ((uint32_t)(bytes[len - 3] & 0x0Fu) << 12)
+               | ((uint32_t)(bytes[len - 2] & 0x3Fu) << 6)
+               |  (uint32_t)(bytes[len - 1] & 0x3Fu);
     return 3;
   }
   else {
-    *codepoint = ((uint32_t)(s[len - 4] & 0x07u) << 18)
-               | ((uint32_t)(s[len - 3] & 0x3Fu) << 12)
-               | ((uint32_t)(s[len - 2] & 0x3Fu) << 6)
-               |  (uint32_t)(s[len - 1] & 0x3Fu);
+    *codepoint = ((uint32_t)(bytes[len - 4] & 0x07u) << 18)
+               | ((uint32_t)(bytes[len - 3] & 0x3Fu) << 12)
+               | ((uint32_t)(bytes[len - 2] & 0x3Fu) << 6)
+               |  (uint32_t)(bytes[len - 1] & 0x3Fu);
     return 4;
   }
 }

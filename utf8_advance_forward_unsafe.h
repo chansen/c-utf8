@@ -52,7 +52,7 @@ static inline size_t utf8_advance_forward_unsafe(const char *src,
                                                  size_t len,
                                                  size_t distance,
                                                  size_t *advanced) {
-  const unsigned char *s = (const unsigned char *)src;
+  const uint8_t *bytes = (const uint8_t *)src;
   size_t pos = 0, count = 0;
 
   while (distance - count >= 32 && len - pos >= 32) {
@@ -68,16 +68,16 @@ static inline size_t utf8_advance_forward_unsafe(const char *src,
   }
 
   while (distance - count >= 8 && len - pos >= 8) {
-    count += utf8_swar_count_codepoints_1x8(s + pos);
+    count += utf8_swar_count_codepoints_1x8(bytes + pos);
     pos += 8;
   }
 
   while (pos < len && count < distance) {
-    count += ((int8_t)s[pos] > -65);
+    count += ((int8_t)bytes[pos] > -65);
     pos++;
   }
 
-  while (pos < len && (int8_t)s[pos] <= -65)
+  while (pos < len && (int8_t)bytes[pos] <= -65)
     pos++;
 
   if (advanced)

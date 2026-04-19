@@ -48,11 +48,11 @@ extern "C" {
 #endif
 
 static inline size_t utf8_maximal_subpart(const char* src, size_t len) {
-  const unsigned char* s = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
 
   for (size_t i = 0; i < len; i++) {
-    state = utf8_dfa_step(state, s[i]);
+    state = utf8_dfa_step(state, bytes[i]);
     switch (state) {
       case UTF8_DFA_ACCEPT:
         return i + 1;
@@ -64,12 +64,12 @@ static inline size_t utf8_maximal_subpart(const char* src, size_t len) {
 }
 
 static inline size_t utf8_maximal_prefix(const char* src, size_t len) {
-  const unsigned char* s = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
   size_t prefix = 0;
 
   for (size_t i = 0; i < len; i++) {
-    state = utf8_dfa_step(state, s[i]);
+    state = utf8_dfa_step(state, bytes[i]);
     if (state == UTF8_DFA_ACCEPT)
       prefix = i + 1;
     else if (state == UTF8_DFA_REJECT)
@@ -81,10 +81,10 @@ static inline size_t utf8_maximal_prefix(const char* src, size_t len) {
 static inline bool utf8_check(const char* src,
                               size_t len,
                               size_t* cursor) {
-  const unsigned char* s = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
 
-  state = utf8_dfa_run_dual(state, s, len);
+  state = utf8_dfa_run_dual(state, bytes, len);
   if (state == UTF8_DFA_ACCEPT) {
     if (cursor)
       *cursor = len;
@@ -100,37 +100,37 @@ static inline bool utf8_valid(const char* src, size_t len) {
   return utf8_check(src, len, NULL);
 }
 
-static inline bool utf8_check_ascii_block16(const unsigned char *s) {
+static inline bool utf8_check_ascii_block16(const uint8_t *bytes) {
 #if defined(UTF8_VALID_HAS_SSE2)
-  __m128i v = _mm_loadu_si128((const __m128i *)s);
+  __m128i v = _mm_loadu_si128((const __m128i *)bytes);
   return _mm_movemask_epi8(v) == 0;
 #elif defined(UTF8_VALID_HAS_NEON)
-  uint8x16_t v = vld1q_u8(s);
+  uint8x16_t v = vld1q_u8(bytes);
   uint8x16_t high = vshrq_n_u8(v, 7);
   return vmaxvq_u8(high) == 0;
 #else
   uint64_t v1, v2;
-  memcpy(&v1, s, sizeof(v1));
-  memcpy(&v2, s + sizeof(v1), sizeof(v2));
+  memcpy(&v1, bytes, sizeof(v1));
+  memcpy(&v2, bytes + sizeof(v1), sizeof(v2));
   v1 |= v2;
   return (v1 & UINT64_C(0x8080808080808080)) == 0;
 #endif
 }
 
 static inline bool utf8_check_ascii(const char* src, size_t slen, size_t* cursor) {
-  const unsigned char* s = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   size_t len = slen;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
 
   // Process 16-byte chunks; skip DFA when state is clean and chunk is ASCII
   while (len >= 16) {
-    if (state != UTF8_DFA_ACCEPT || !utf8_check_ascii_block16(s))
-      state = utf8_dfa_run16(state, s);
-    s += 16;
+    if (state != UTF8_DFA_ACCEPT || !utf8_check_ascii_block16(bytes))
+      state = utf8_dfa_run16(state, bytes);
+    bytes += 16;
     len -= 16;
   }
 
-  state = utf8_dfa_run(state, s, len);
+  state = utf8_dfa_run(state, bytes, len);
   if (state == UTF8_DFA_ACCEPT) {
     if (cursor)
       *cursor = slen;

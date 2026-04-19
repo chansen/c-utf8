@@ -347,15 +347,15 @@ static const utf8_rdfa_state_t utf8_rdfa[256] = {
 #undef F4_ROW
 
 static inline utf8_rdfa_state_t utf8_rdfa_step(utf8_rdfa_state_t state,
-                                               unsigned char c) {
-  return (utf8_rdfa[c] >> state) & 31;
+                                               uint8_t byte) {
+  return (utf8_rdfa[byte] >> state) & 31;
 }
 
 static inline utf8_rdfa_state_t utf8_rdfa_run(utf8_rdfa_state_t state,
-                                              const unsigned char* src,
+                                              const uint8_t* bytes,
                                               size_t len) {
   while (len > 0)
-    state = utf8_rdfa[src[--len]] >> (state & 31);
+    state = utf8_rdfa[bytes[--len]] >> (state & 31);
   return state & 31;
 }
 

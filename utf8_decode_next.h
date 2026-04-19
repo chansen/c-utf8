@@ -55,19 +55,19 @@ static inline int utf8_decode_next(const char* src,
   if (len == 0)
     return 0;
 
-  const unsigned char* s = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
   uint32_t cp = 0;
   size_t pos = 0;
 
   do {
-    state = utf8_dfa_step_decode(state, s[pos++], &cp);
+    state = utf8_dfa_step_decode(state, bytes[pos++], &cp);
     if (state == UTF8_DFA_ACCEPT) {
       *codepoint = cp;
       return (int)pos;
     }
     if (state == UTF8_DFA_REJECT) {
-     /* The byte at s[pos-1] triggered rejection. If it was the first
+     /* The byte at bytes[pos-1] triggered rejection. If it was the first
       * byte, it is itself the maximal subpart (length 1). Otherwise
       * the lead byte(s) already consumed form the maximal subpart
       * and the triggering byte belongs to the next sequence. */
@@ -91,13 +91,13 @@ static inline int utf8_decode_next_replace(const char* src,
   if (len == 0)
     return 0;
 
-  const unsigned char* s = (const unsigned char*)src;
+  const uint8_t* bytes = (const uint8_t*)src;
   utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
   uint32_t cp = 0;
   size_t pos = 0;
 
   do {
-    state = utf8_dfa_step_decode(state, s[pos++], &cp);
+    state = utf8_dfa_step_decode(state, bytes[pos++], &cp);
     if (state == UTF8_DFA_ACCEPT) {
       *codepoint = cp;
       return (int)pos;
