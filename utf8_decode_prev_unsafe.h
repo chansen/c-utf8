@@ -45,10 +45,10 @@ static inline int utf8_decode_prev_unsafe(const char *src,
     return 0;
 
   const uint8_t *bytes = (const uint8_t *)src;
-  unsigned int c = bytes[len - 1];
+  unsigned int tail = bytes[len - 1];
 
-  if (c < 0x80u) {
-    *codepoint = c;
+  if (tail < 0x80u) {
+    *codepoint = tail;
     return 1;
   }
   else if ((int8_t)bytes[len - 2] > -65) {

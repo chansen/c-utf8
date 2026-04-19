@@ -62,8 +62,8 @@ static inline utf8_transcode_result_t utf8_transcode_utf32_unsafe(const char *sr
   size_t r = 0, w = 0;
 
   while (r < src_len && w < dst_len) {
-    unsigned int c = bytes[r];
-    if (c < 0x80u) {
+    unsigned int lead = bytes[r];
+    if (lead < 0x80u) {
       while (r + 8 <= src_len && w + 8 <= dst_len) {
         uint64_t v;
         memcpy(&v, bytes + r, sizeof(v));
@@ -76,13 +76,13 @@ static inline utf8_transcode_result_t utf8_transcode_utf32_unsafe(const char *sr
       }
       while (r < src_len && w < dst_len && bytes[r] < 0x80u)
         dst[w++] = bytes[r++];
-    } else if (c < 0xE0u) {
+    } else if (lead < 0xE0u) {
       do {
         dst[w++] = ((uint32_t)(bytes[r + 0] & 0x1Fu) << 6)
                  |  (uint32_t)(bytes[r + 1] & 0x3Fu);
         r += 2;
       } while (r < src_len && w < dst_len && (unsigned)bytes[r] - 0xC0u < 0x20u);
-    } else if (c < 0xF0u) {
+    } else if (lead < 0xF0u) {
       do {
         dst[w++] = ((uint32_t)(bytes[r + 0] & 0x0Fu) << 12)
                  | ((uint32_t)(bytes[r + 1] & 0x3Fu) << 6)
@@ -140,8 +140,8 @@ static inline utf8_transcode_result_t utf8_transcode_utf16_unsafe(const char *sr
   size_t r = 0, w = 0, n = 0;
 
   while (r < src_len && w < dst_len) {
-    unsigned int c = bytes[r];
-    if (c < 0x80u) {
+    unsigned int lead = bytes[r];
+    if (lead < 0x80u) {
       while (r + 8 <= src_len && w + 8 <= dst_len) {
         uint64_t v;
         memcpy(&v, bytes + r, sizeof(v));
@@ -157,14 +157,14 @@ static inline utf8_transcode_result_t utf8_transcode_utf16_unsafe(const char *sr
         dst[w++] = bytes[r++];
         n++;
       }
-    } else if (c < 0xE0u) {
+    } else if (lead < 0xE0u) {
       do {
         dst[w++] = (uint16_t)(((uint32_t)(bytes[r + 0] & 0x1Fu) << 6)
                              | (uint32_t)(bytes[r + 1] & 0x3Fu));
         r += 2;
         n++;
       } while (r < src_len && w < dst_len && (unsigned)bytes[r] - 0xC0u < 0x20u);
-    } else if (c < 0xF0u) {
+    } else if (lead < 0xF0u) {
       do {
         dst[w++] = (uint16_t)(((uint32_t)(bytes[r + 0] & 0x0Fu) << 12)
                             | ((uint32_t)(bytes[r + 1] & 0x3Fu) << 6)
