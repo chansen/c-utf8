@@ -28,14 +28,17 @@ TESTS = \
 	advance_forward64 \
 	advance_forward_ascii32 \
 	advance_forward_ascii64 \
+	advance_forward_unsafe \
 	advance_backward32 \
 	advance_backward64 \
 	advance_backward_ascii32 \
 	advance_backward_ascii64 \
+	advance_backward_unsafe \
 	distance32 \
 	distance64 \
 	distance_ascii32 \
 	distance_ascii64 \
+	distance_unsafe \
 	decode_next \
 	decode_next_unsafe \
 	decode_prev \
@@ -47,7 +50,9 @@ TESTS = \
 	dfa_run_dual32 \
 	dfa_run_dual64 \
 	dfa_run_triple32 \
-	dfa_run_triple64
+	dfa_run_triple64 \
+	swar \
+	simd
 
 all: test
 
@@ -99,6 +104,9 @@ advance_forward_ascii32: $(TEST_DIR)/advance_forward_ascii.c utf8_dfa32.h utf8_a
 advance_forward_ascii64: $(TEST_DIR)/advance_forward_ascii.c utf8_dfa64.h utf8_advance_forward.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/advance_forward_ascii.c
 
+advance_forward_unsafe: $(TEST_DIR)/advance_forward_unsafe.c utf8_swar.h utf8_advance_forward_unsafe.h utf8_dfa64.h utf8_advance_forward.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/advance_forward_unsafe.c
+
 advance_backward32: $(TEST_DIR)/advance_backward.c utf8_rdfa32.h utf8_advance_backward.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/advance_backward.c
 
@@ -111,11 +119,17 @@ advance_backward_ascii32: $(TEST_DIR)/advance_backward_ascii.c utf8_rdfa32.h utf
 advance_backward_ascii64: $(TEST_DIR)/advance_backward_ascii.c utf8_rdfa64.h utf8_advance_backward.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_RDFA_64 -o $@ $(TEST_DIR)/advance_backward_ascii.c
 
+advance_backward_unsafe: $(TEST_DIR)/advance_backward_unsafe.c utf8_swar.h utf8_advance_backward_unsafe.h utf8_rdfa64.h utf8_advance_backward.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_RDFA_64 -o $@ $(TEST_DIR)/advance_backward_unsafe.c
+
 distance32: $(TEST_DIR)/distance.c utf8_dfa32.h utf8_distance.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/distance.c
 
 distance64: $(TEST_DIR)/distance.c utf8_dfa64.h utf8_distance.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/distance.c
+
+distance_unsafe: $(TEST_DIR)/distance_unsafe.c utf8_swar.h utf8_distance_unsafe.h utf8_dfa64.h utf8_distance.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/distance_unsafe.c
 
 distance_ascii32: $(TEST_DIR)/distance_ascii.c utf8_dfa32.h utf8_distance.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/distance_ascii.c
@@ -159,6 +173,12 @@ dfa_run_triple32: $(TEST_DIR)/dfa_run_triple.c utf8_dfa32.h
 dfa_run_triple64: $(TEST_DIR)/dfa_run_triple.c utf8_dfa64.h
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/dfa_run_triple.c
 
+swar: $(TEST_DIR)/swar.c utf8_swar.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/swar.c
+
+simd: $(TEST_DIR)/simd.c utf8_simd.h utf8_swar.h
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/simd.c
+
 test: $(TESTS)
 	./dfa_step32
 	./dfa_step64
@@ -176,14 +196,17 @@ test: $(TESTS)
 	./advance_forward64
 	./advance_forward_ascii32
 	./advance_forward_ascii64
+	./advance_forward_unsafe
 	./advance_backward32
 	./advance_backward64
 	./advance_backward_ascii32
 	./advance_backward_ascii64
+	./advance_backward_unsafe
 	./distance32
 	./distance64
 	./distance_ascii32
 	./distance_ascii64
+	./distance_unsafe
 	./decode_next
 	./decode_next_unsafe
 	./decode_prev
@@ -196,6 +219,8 @@ test: $(TESTS)
 	./dfa_run_dual64
 	./dfa_run_triple32
 	./dfa_run_triple64
+	./swar
+	./simd
 
 bench: $(BENCH_SRC) utf8_valid.h
 	$(CC) $(CPPFLAGS) $(BENCH_CFLAGS) -o $(BENCH_BIN) $(BENCH_SRC)
