@@ -67,8 +67,8 @@ static inline int utf8_decode_prev_unsafe(const char *src,
                | ((uint32_t)(s[len - 3] & 0x3Fu) << 12)
                | ((uint32_t)(s[len - 2] & 0x3Fu) << 6)
                |  (uint32_t)(s[len - 1] & 0x3Fu);
+    return 4;
   }
-  return 4;
 }
 
 #ifdef __cplusplus
