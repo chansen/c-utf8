@@ -166,21 +166,23 @@ The 64-bit variants are supersets of the 32-bit variants — include exactly
 one forward backend and, if you need backward traversal, exactly one reverse
 backend.
 
-| You need                   | Forward              | Reverse               |
-| :---                       | :---                 | :---                  |
-| Validate                   | `utf8_dfa{32,64}.h`  | —                     |
-| Count codepoints           | `utf8_dfa{32,64}.h`  | —                     |
-| Streaming validation       | `utf8_dfa{32,64}.h`  | —                     |
-| Skip forward N codepoints  | `utf8_dfa{32,64}.h`  | —                     |
-| Decode forward             | `utf8_dfa64.h`       | —                     |
-| Transcode to UTF-16/32     | `utf8_dfa64.h`       | —                     |
-| Skip backward N codepoints | —                    | `utf8_rdfa{32,64}.h`  |
-| Decode backward            | —                    | `utf8_rdfa64.h`       |
+| You need                             | Forward              | Reverse               |
+| :---                                 | :---                 | :---                  |
+| Validate                             | `utf8_dfa{32,64}.h`  | —                     |
+| Count codepoints                     | `utf8_dfa{32,64}.h`  | —                     |
+| Streaming validation                 | `utf8_dfa{32,64}.h`  | —                     |
+| Skip forward N codepoints            | `utf8_dfa{32,64}.h`  | —                     |
+| Decode forward                       | `utf8_dfa64.h`       | —                     |
+| Transcode to UTF-16/32               | `utf8_dfa64.h`       | —                     |
+| Skip backward N codepoints           | —                    | `utf8_rdfa{32,64}.h`  |
+| Decode backward                      | —                    | `utf8_rdfa64.h`       |
+| Count/skip/decode/transcode (unsafe) | None                 | None                  |
 
 ## API
 
-The library is split into independent header files. Each requires exactly one
-DFA backend to be included first.
+The library is split into independent header files. The safe API headers each
+require exactly one DFA backend to be included first. The [unsafe variants](#unsafe-variants) 
+require no DFA backend and operate on pre-validated input only.
 
 ---
 
@@ -196,17 +198,24 @@ bool   utf8_check_ascii(const char *src, size_t len, size_t *cursor);
 size_t utf8_maximal_subpart(const char *src, size_t len);
 ```
 
-**`utf8_valid`** returns `true` if `src[0..len)` is valid UTF-8.
+**`utf8_valid`** returns `true` if `src[0..len)` is valid UTF-8. Internally
+uses dual-stream validation: the input is split at a sequence boundary near
+the midpoint and two independent DFA chains run in a single interleaved loop,
+exploiting instruction-level parallelism on wide-issue cores.
 
 **`utf8_check`** returns `true` if `src[0..len)` is valid UTF-8. On failure,
 if `cursor` is non-NULL, sets `*cursor` to the byte offset of the first
-ill-formed sequence (the length of the maximal valid prefix).
+ill-formed sequence (the length of the maximal valid prefix). Uses the same
+dual-stream strategy as `utf8_valid`.
 
 **`utf8_valid_ascii`** and **`utf8_check_ascii`** are drop-in replacements
-with a 16-byte ASCII fast path that skips the DFA for chunks containing only
-ASCII bytes. Behaviour is identical to `utf8_valid` and `utf8_check`.
-Throughput advantage depends on content mix and microarchitecture; see the
-[Performance](#performance) section.
+that use a single DFA stream with a 16-byte ASCII fast path. On each
+iteration the fast path checks whether the next 16 bytes are all ASCII; if
+so, it skips them without entering the DFA. When a non-ASCII byte is
+encountered the DFA processes bytes until it returns to the `ACCEPT` state,
+at which point the fast path is re-entered. Behaviour is identical to 
+`utf8_valid` and `utf8_check`. Throughput advantage depends on content mix 
+and microarchitecture; see the [Performance](#performance) section.
 
 **`utf8_maximal_subpart`** returns the length of the maximal subpart of the
 ill-formed sequence starting at `src[0..len)`, as defined by Unicode 
@@ -433,6 +442,7 @@ int utf8_decode_prev_replace(const char *src, size_t len, uint32_t *codepoint);
 
 **`utf8_decode_prev_replace`** is identical but on error writes U+FFFD to
 `*codepoint` and returns the step-back distance as a positive value.
+Never returns a negative value; returns `0` only when `len` is 0.
 
 The reverse DFA sees continuation bytes before the lead byte. For some
 ill-formed inputs (e.g. two lone continuation bytes `\x80\x80`),
@@ -520,6 +530,122 @@ For UTF-32, `result.written` always equals `result.decoded` since each
 codepoint maps to exactly one code unit. For UTF-16, `result.written` may
 exceed `result.decoded` due to surrogate pairs for codepoints above U+FFFF.
 
+## Unsafe variants
+
+The following headers provide validation-free implementations for use on
+input that has already been validated. They skip the DFA entirely and decode
+or count by inspecting lead/continuation byte structure directly. The caller
+**must** guarantee that `src` contains well-formed UTF-8; behaviour is
+undefined otherwise.
+
+These are not drop-in replacements for the safe API — they never return error
+indicators. Use them on the output side of a validation boundary (e.g. after
+`utf8_valid` or `utf8_check` has accepted the input).
+
+---
+
+### Unsafe codepoint count — `utf8_distance_unsafe.h`
+
+No DFA backend required.
+
+```c
+size_t utf8_distance_unsafe(const char *src, size_t len);
+```
+
+**`utf8_distance_unsafe`** returns the number of codepoints in `src[0..len)`. 
+Uses SIMD (when available) or SWAR to process 32-byte blocks in bulk, then 
+8-byte SWAR blocks, then a scalar tail. Cannot fail.
+
+---
+
+### Unsafe forward navigation — `utf8_advance_forward_unsafe.h`
+
+No DFA backend required.
+
+```c
+size_t utf8_advance_forward_unsafe(const char *src,
+                                   size_t len,
+                                   size_t distance,
+                                   size_t *advanced);
+```
+
+**`utf8_advance_forward_unsafe`** returns the byte offset of the codepoint
+`distance` positions ahead in `src[0..len)`, or `len` if `distance` exceeds
+the number of codepoints in the buffer. If `advanced` is non-NULL, writes the
+number of codepoints actually skipped. Uses SIMD/SWAR bulk counting internally.
+
+---
+
+### Unsafe backward navigation — `utf8_advance_backward_unsafe.h`
+
+No DFA backend required.
+
+```c
+size_t utf8_advance_backward_unsafe(const char *src,
+                                    size_t len,
+                                    size_t distance,
+                                    size_t *advanced);
+```
+
+**`utf8_advance_backward_unsafe`** returns the byte offset of the codepoint
+`distance` positions before the end of `src[0..len)`, or `0` if `distance`
+exceeds the number of codepoints in the buffer. If `advanced` is non-NULL,
+writes the number of codepoints actually skipped. Uses SIMD/SWAR bulk
+counting internally.
+
+---
+
+### Unsafe forward decoding — `utf8_decode_next_unsafe.h`
+
+No DFA backend required.
+
+```c
+int utf8_decode_next_unsafe(const char *src, size_t len, uint32_t *codepoint);
+```
+
+**`utf8_decode_next_unsafe`** decodes the codepoint starting at `src[0]`.
+Returns bytes consumed (1–4) and writes the codepoint to `*codepoint`.
+Returns `0` when `len` is 0.
+
+---
+
+### Unsafe backward decoding — `utf8_decode_prev_unsafe.h`
+
+No DFA backend required.
+
+```c
+int utf8_decode_prev_unsafe(const char *src, size_t len, uint32_t *codepoint);
+```
+
+**`utf8_decode_prev_unsafe`** decodes the codepoint ending at `src[len-1]`.
+Returns bytes consumed (1–4) and writes the codepoint to `*codepoint`.
+Returns `0` when `len` is 0.
+
+---
+
+### Unsafe transcoding — `utf8_transcode_unsafe.h`
+
+Requires `utf8_transcode_common.h` (included automatically).
+
+```c
+utf8_transcode_result_t utf8_transcode_utf32_unsafe(const char *src, size_t src_len,
+                                                    uint32_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf16_unsafe(const char *src, size_t src_len,
+                                                    uint16_t *dst, size_t dst_len);
+```
+
+**`utf8_transcode_utf32_unsafe`** and **`utf8_transcode_utf16_unsafe`**
+transcode `src[0..src_len)` into `dst[0..dst_len)`. Status is always `OK` or
+`EXHAUSTED`; `advance` is always 0. The result struct is identical to the
+safe variants for easy interchangeability.
+
+Both functions process 8 bytes at a time when all 8 are ASCII (widening
+without decoding) and batch consecutive sequences of the same length class to
+avoid re-entering the lead-byte classifier. For UTF-16, codepoints above
+U+FFFF are encoded as surrogate pairs.
+
+---
+
 ## Error handling and U+FFFD replacement
 
 When processing untrusted input, any ill-formed sequence should be replaced
@@ -561,15 +687,19 @@ the `_replace` variants.
 
 ## Security
 
-All routines in this library are safe to use on untrusted input.
+The guarantees below apply to the safe (DFA-based) API. The `_unsafe`
+variants perform no validation and assume the caller has already verified
+the input; passing ill-formed UTF-8 to an unsafe function is undefined
+behaviour.
 
 **All decoded codepoints are within the Unicode scalar value range.** The DFA
 structurally rejects non-shortest-form encodings, surrogate halves 
 (U+D800–U+DFFF), and codepoints above U+10FFFF. These cannot appear in the 
-output of any decoding or transcoding function.
+output of any safe decoding or transcoding function.
 
-**No dynamic allocation.** All functions operate on caller-supplied buffers
-with no heap allocation, no global mutable state, and no use of `errno`.
+**No dynamic allocation.** All functions (safe and unsafe) operate on
+caller-supplied buffers with no heap allocation, no global mutable state, and
+no use of `errno`.
 
 **No data-dependent branches on byte value.** The DFA step is a table lookup
 and bitwise shift with no conditional branches that depend on the input byte.
@@ -578,6 +708,9 @@ Note that the `_ascii` variants (`utf8_valid_ascii`, `utf8_check_ascii`,
 `utf8_distance_ascii`, `utf8_advance_forward_ascii`, and
 `utf8_advance_backward_ascii`) are exceptions; they branch on whether a chunk 
 contains only ASCII bytes, making their execution time content-dependent.
+The `_unsafe` variants also use content-dependent branching (lead-byte
+classification) since they are intended for performance-critical paths where
+the input is already trusted.
 
 ## Performance
 
@@ -609,7 +742,7 @@ dual-stream validation; see [Observations](#observations).
 | `-O3 -march=x86-64-v3`  |    6471 MB/s |          5349 MB/s | fast path not profitable on multibyte  |
 
 Numbers shown for ar.txt (81% 2-byte). On near-pure ASCII (en.txt) `utf8_valid_ascii`
-reaches 29–35 GB/s at `-O3`.
+reaches 29–35 GB/s at all optimization levels.
 
 ### Raptor Lake (GCC 14, x86-64)
 
@@ -620,7 +753,7 @@ reaches 29–35 GB/s at `-O3`.
 | `-O3 -march=x86-64-v3`  |    6489 MB/s |          4164 MB/s | fast path not profitable on multibyte  |
 
 Numbers shown for ar.txt (81% 2-byte). On near-pure ASCII (en.txt) `utf8_valid_ascii`
-reaches 36–41 GB/s at `-O3`.
+reaches 36–41 GB/s at all optimization levels.
 
 ### Haswell (Clang 22, x86-64)
 
