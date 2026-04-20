@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "utf8_dfa64.h"
 #include "utf8_decode_next.h"
 

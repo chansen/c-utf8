@@ -1,3 +1,5 @@
+#include <stdbool.h>
+
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
 #else

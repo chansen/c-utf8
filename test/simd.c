@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdint.h>
 
 #include "utf8_simd.h"
 #include "utf8_swar.h"

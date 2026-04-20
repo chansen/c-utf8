@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdint.h>
 
 #include "utf8_dfa64.h"
 #include "utf8_transcode.h"

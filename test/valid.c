@@ -1,6 +1,7 @@
 #include <stdlib.h>
-#include <string.h>
 #include <assert.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"

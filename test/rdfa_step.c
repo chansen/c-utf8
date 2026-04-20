@@ -1,5 +1,5 @@
-#include <string.h>
-#include <assert.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #ifdef UTF8_RDFA_64
 #  include "utf8_rdfa64.h"

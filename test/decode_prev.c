@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "utf8_rdfa64.h"
 #include "utf8_decode_prev.h"
 
