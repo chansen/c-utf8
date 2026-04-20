@@ -107,13 +107,14 @@ static void test_agrees_with_safe(void) {
 }
 
 int main(void) {
-  test_end();
-  test_ascii();
-  test_2byte();
-  test_3byte();
-  test_4byte();
-  test_sequence();
-  test_extra_len();
-  test_agrees_with_safe();
+  SUITE(__FILE__);
+  RUN(test_end);
+  RUN(test_ascii);
+  RUN(test_2byte);
+  RUN(test_3byte);
+  RUN(test_4byte);
+  RUN(test_sequence);
+  RUN(test_extra_len);
+  RUN(test_agrees_with_safe);
   return report_results();
 }

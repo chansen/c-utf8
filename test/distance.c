@@ -44,11 +44,11 @@ static void test_distance_illformed(void) {
 }
 
 int main(void) {
-  test_distance_empty();
-  test_distance_ascii();
-  test_distance_mixed();
-  test_distance_partial();
-  test_distance_illformed();
-
+  SUITE(__FILE__);
+  RUN(test_distance_empty);
+  RUN(test_distance_ascii);
+  RUN(test_distance_mixed);
+  RUN(test_distance_partial);
+  RUN(test_distance_illformed);
   return report_results();
 }

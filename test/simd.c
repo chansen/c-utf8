@@ -149,17 +149,18 @@ static void test_mixed(void) {
 #endif /* UTF8_SIMD_AVAILABLE */
 
 int main(void) {
+  SUITE(__FILE__);
 #ifdef UTF8_SIMD_AVAILABLE
-  test_zero_blocks();
-  test_ascii();
-  test_continuation();
-  test_2byte();
-  test_3byte();
-  test_4byte();
-  test_nul();
-  test_agrees_with_swar();
-  test_large();
-  test_mixed();
+  RUN(test_zero_blocks);
+  RUN(test_ascii);
+  RUN(test_continuation);
+  RUN(test_2byte);
+  RUN(test_3byte);
+  RUN(test_4byte);
+  RUN(test_nul);
+  RUN(test_agrees_with_swar);
+  RUN(test_large);
+  RUN(test_mixed);
 #else
   printf("SIMD not available, skipping tests.\n");
 #endif

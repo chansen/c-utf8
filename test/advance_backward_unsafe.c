@@ -169,19 +169,20 @@ static void test_agrees_with_safe(void) {
 }
 
 int main(void) {
-  test_zero();
-  test_one();
-  test_two();
-  test_three();
-  test_exact();
-  test_exceed();
-  test_empty();
-  test_ascii();
-  test_2byte();
-  test_3byte();
-  test_4byte();
-  test_null_advanced();
-  test_large_ascii();
-  test_agrees_with_safe();
+  SUITE(__FILE__);
+  RUN(test_zero);
+  RUN(test_one);
+  RUN(test_two);
+  RUN(test_three);
+  RUN(test_exact);
+  RUN(test_exceed);
+  RUN(test_empty);
+  RUN(test_ascii);
+  RUN(test_2byte);
+  RUN(test_3byte);
+  RUN(test_4byte);
+  RUN(test_null_advanced);
+  RUN(test_large_ascii);
+  RUN(test_agrees_with_safe);
   return report_results();
 }

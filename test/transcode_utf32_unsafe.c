@@ -238,23 +238,24 @@ static void test_agrees_with_safe(void) {
 }
 
 int main(void) {
-  test_empty();
-  test_ascii_short();
-  test_ascii_one_stride();
-  test_ascii_two_strides();
-  test_ascii_stride_plus_tail();
-  test_2byte();
-  test_3byte();
-  test_4byte();
-  test_mixed();
-  test_ascii_then_multibyte();
-  test_multibyte_then_ascii();
-  test_batch_2byte();
-  test_batch_3byte();
-  test_batch_4byte();
-  test_exhausted();
-  test_exhausted_resume();
-  test_dst_exact();
-  test_agrees_with_safe();
+  SUITE(__FILE__);
+  RUN(test_empty);
+  RUN(test_ascii_short);
+  RUN(test_ascii_one_stride);
+  RUN(test_ascii_two_strides);
+  RUN(test_ascii_stride_plus_tail);
+  RUN(test_2byte);
+  RUN(test_3byte);
+  RUN(test_4byte);
+  RUN(test_mixed);
+  RUN(test_ascii_then_multibyte);
+  RUN(test_multibyte_then_ascii);
+  RUN(test_batch_2byte);
+  RUN(test_batch_3byte);
+  RUN(test_batch_4byte);
+  RUN(test_exhausted);
+  RUN(test_exhausted_resume);
+  RUN(test_dst_exact);
+  RUN(test_agrees_with_safe);
   return report_results();
 }

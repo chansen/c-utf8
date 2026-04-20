@@ -196,6 +196,7 @@ test_streaming(void) {
 
 int
 main(int argc, char **argv) {
-  test_streaming();
+  SUITE(__FILE__);
+  RUN(test_streaming);
   return report_results();
 }

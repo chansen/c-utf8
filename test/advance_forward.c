@@ -101,16 +101,16 @@ static void test_forward_null_advanced(void) {
 }
 
 int main(void) {
-  test_forward_zero();
-  test_forward_one();
-  test_forward_two();
-  test_forward_three();
-  test_forward_exact();
-  test_forward_exceed();
-  test_forward_ascii();
-  test_forward_empty();
-  test_forward_illformed();
-  test_forward_null_advanced();
-
+  SUITE(__FILE__);
+  RUN(test_forward_zero);
+  RUN(test_forward_one);
+  RUN(test_forward_two);
+  RUN(test_forward_three);
+  RUN(test_forward_exact);
+  RUN(test_forward_exceed);
+  RUN(test_forward_ascii);
+  RUN(test_forward_empty);
+  RUN(test_forward_illformed);
+  RUN(test_forward_null_advanced);
   return report_results();
 }

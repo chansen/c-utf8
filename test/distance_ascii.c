@@ -116,16 +116,17 @@ static void test_agrees_with_base(void) {
 }
 
 int main(void) {
-  test_one_stride();
-  test_two_strides();
-  test_three_strides();
-  test_stride_plus_tail();
-  test_ascii_then_multibyte();
-  test_multibyte_then_ascii();
-  test_straddle_boundary();
-  test_state_guard();
-  test_pure_multibyte_stride();
-  test_below_stride();
-  test_agrees_with_base();
+  SUITE(__FILE__);
+  RUN(test_one_stride);
+  RUN(test_two_strides);
+  RUN(test_three_strides);
+  RUN(test_stride_plus_tail);
+  RUN(test_ascii_then_multibyte);
+  RUN(test_multibyte_then_ascii);
+  RUN(test_straddle_boundary);
+  RUN(test_state_guard);
+  RUN(test_pure_multibyte_stride);
+  RUN(test_below_stride);
+  RUN(test_agrees_with_base);
   return report_results();
 }

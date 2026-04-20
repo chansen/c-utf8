@@ -1,4 +1,9 @@
+#include <string.h>
+#include <assert.h>
+
 #include "utf8_rdfa64.h"
+
+#include "test.h"
 #include "test_util.h"
 
 static utf8_rdfa_state_t rdfa_run_decode(const char *src, size_t len, uint32_t *cp) {
@@ -100,8 +105,9 @@ static void test_step_progression(void) {
 }
 
 int main(void) {
-  test_unicode_scalar_value();
-  test_truncated();
-  test_step_progression();
+  SUITE(__FILE__);
+  RUN(test_unicode_scalar_value);
+  RUN(test_truncated);
+  RUN(test_step_progression);
   return report_results();
 }

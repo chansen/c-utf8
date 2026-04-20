@@ -174,18 +174,18 @@ static void test_replace_sequence(void) {
 }
 
 int main(void) {
-  test_prev_end();
-  test_prev_ascii();
-  test_prev_2byte();
-  test_prev_3byte();
-  test_prev_4byte();
-  test_prev_invalid();
-  test_prev_truncated();
-  test_prev_sequence();
-  test_replace_success();
-  test_replace_invalid();
-  test_replace_truncated();
-  test_replace_sequence();
-
+  SUITE(__FILE__);
+  RUN(test_prev_end);
+  RUN(test_prev_ascii);
+  RUN(test_prev_2byte);
+  RUN(test_prev_3byte);
+  RUN(test_prev_4byte);
+  RUN(test_prev_invalid);
+  RUN(test_prev_truncated);
+  RUN(test_prev_sequence);
+  RUN(test_replace_success);
+  RUN(test_replace_invalid);
+  RUN(test_replace_truncated);
+  RUN(test_replace_sequence);
   return report_results();
 }

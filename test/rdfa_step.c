@@ -1,9 +1,13 @@
+#include <string.h>
+#include <assert.h>
+
 #ifdef UTF8_RDFA_64
 #  include "utf8_rdfa64.h"
 #else
 #  include "utf8_rdfa32.h"
 #endif
 
+#include "test.h"
 #include "test_util.h"
 
 static utf8_rdfa_state_t rdfa_run(const char *src, size_t len) {
@@ -159,12 +163,13 @@ static void test_step_progression(void) {
 
 int
 main(void) {
-  test_unicode_scalar_value();
-  test_surrogates();
-  test_non_shortest_form();
-  test_non_unicode();
-  test_5_and_6_byte_leads();
-  test_truncated();
-  test_step_progression();
+  SUITE(__FILE__);
+  RUN(test_unicode_scalar_value);
+  RUN(test_surrogates);
+  RUN(test_non_shortest_form);
+  RUN(test_non_unicode);
+  RUN(test_5_and_6_byte_leads);
+  RUN(test_truncated);
+  RUN(test_step_progression);
   return report_results();
 }

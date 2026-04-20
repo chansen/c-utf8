@@ -288,13 +288,14 @@ static void test_count_codepoints_Nx32(void) {
 }
 
 int main(void) {
-  test_hsum_bits8();
-  test_hsum_bytes8();
-  test_mark_ascii8();
-  test_mark_non_continuations8();
-  test_mark_continuations8();
-  test_invariants();
-  test_count_codepoints_1x8();
-  test_count_codepoints_Nx32();
+  SUITE(__FILE__);
+  RUN(test_hsum_bits8);
+  RUN(test_hsum_bytes8);
+  RUN(test_mark_ascii8);
+  RUN(test_mark_non_continuations8);
+  RUN(test_mark_continuations8);
+  RUN(test_invariants);
+  RUN(test_count_codepoints_1x8);
+  RUN(test_count_codepoints_Nx32);
   return report_results();
 }

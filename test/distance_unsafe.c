@@ -108,16 +108,17 @@ static void test_agrees_with_safe(void) {
 }
 
 int main(void) {
-  test_empty();
-  test_ascii();
-  test_ascii_tail();
-  test_2byte();
-  test_3byte();
-  test_4byte();
-  test_mixed();
-  test_partial();
-  test_nul();
-  test_large();
-  test_agrees_with_safe();
+  SUITE(__FILE__);
+  RUN(test_empty);
+  RUN(test_ascii);
+  RUN(test_ascii_tail);
+  RUN(test_2byte);
+  RUN(test_3byte);
+  RUN(test_4byte);
+  RUN(test_mixed);
+  RUN(test_partial);
+  RUN(test_nul);
+  RUN(test_large);
+  RUN(test_agrees_with_safe);
   return report_results();
 }

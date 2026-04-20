@@ -234,24 +234,24 @@ static void test_replace_surrogate(void) {
 }
 
 int main(void) {
-  test_decode_empty();
-  test_decode_ascii();
-  test_decode_multibyte();
-  test_decode_exhausted();
-  test_decode_dst_exact();
-  test_decode_exhausted_resume();
-  test_decode_illformed();
-  test_decode_illformed_resume();
-  test_decode_illformed_lead_then_bad_cont();
-  test_decode_truncated();
-  test_decode_truncated_after_valid();
-  test_replace_clean();
-  test_replace_bare_cont();
-  test_replace_mixed();
-  test_replace_lead_bad_cont();
-  test_replace_truncated();
-  test_replace_exhausted();
-  test_replace_surrogate();
-
+  SUITE(__FILE__);
+  RUN(test_decode_empty);
+  RUN(test_decode_ascii);
+  RUN(test_decode_multibyte);
+  RUN(test_decode_exhausted);
+  RUN(test_decode_dst_exact);
+  RUN(test_decode_exhausted_resume);
+  RUN(test_decode_illformed);
+  RUN(test_decode_illformed_resume);
+  RUN(test_decode_illformed_lead_then_bad_cont);
+  RUN(test_decode_truncated);
+  RUN(test_decode_truncated_after_valid);
+  RUN(test_replace_clean);
+  RUN(test_replace_bare_cont);
+  RUN(test_replace_mixed);
+  RUN(test_replace_lead_bad_cont);
+  RUN(test_replace_truncated);
+  RUN(test_replace_exhausted);
+  RUN(test_replace_surrogate);
   return report_results();
 }

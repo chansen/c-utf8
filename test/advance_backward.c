@@ -97,16 +97,16 @@ static void test_backward_null_advanced(void) {
 }
 
 int main(void) {
-  test_backward_zero();
-  test_backward_one();
-  test_backward_two();
-  test_backward_three();
-  test_backward_exact();
-  test_backward_exceed();
-  test_backward_ascii();
-  test_backward_empty();
-  test_backward_illformed();
-  test_backward_null_advanced();
-
+  SUITE(__FILE__);
+  RUN(test_backward_zero);
+  RUN(test_backward_one);
+  RUN(test_backward_two);
+  RUN(test_backward_three);
+  RUN(test_backward_exact);
+  RUN(test_backward_exceed);
+  RUN(test_backward_ascii);
+  RUN(test_backward_empty);
+  RUN(test_backward_illformed);
+  RUN(test_backward_null_advanced);
   return report_results();
 }

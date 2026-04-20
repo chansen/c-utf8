@@ -130,6 +130,7 @@ static void run_file(const char* path) {
 }
 
 int main(int argc, char** argv) {
+  SUITE(__FILE__);
   if (argc < 2) {
     fprintf(stderr, "Usage: %s utf8tests.txt\n", argv[0]);
     return 1;

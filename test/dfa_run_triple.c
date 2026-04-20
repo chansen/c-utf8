@@ -1,4 +1,5 @@
 #include <string.h>
+#include <assert.h>
 
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
@@ -6,6 +7,7 @@
 #  include "utf8_dfa32.h"
 #endif
 
+#include "test.h"
 #include "test_util.h"
 
 static utf8_dfa_state_t triple_run(const char *src, size_t len) {
@@ -373,27 +375,28 @@ test_exhaustive_2byte(void) {
 
 int
 main(void) {
-  test_empty();
-  test_single_byte();
-  test_two_bytes();
-  test_three_bytes();
-  test_split_on_continuation();
-  test_unicode_scalar_values();
-  test_surrogates();
-  test_non_shortest_form();
-  test_non_unicode();
-  test_bare_continuations();
-  test_invalid_in_first_third();
-  test_invalid_in_second_third();
-  test_invalid_in_third_third();
-  test_invalid_in_all_thirds();
-  test_mixed_valid_sequences();
-  test_large_ascii();
-  test_large_multibyte();
-  test_large_3byte();
-  test_large_with_error_at_every_position();
-  test_uneven_segments();
-  test_incoming_state();
-  test_exhaustive_2byte();
+  SUITE(__FILE__);
+  RUN(test_empty);
+  RUN(test_single_byte);
+  RUN(test_two_bytes);
+  RUN(test_three_bytes);
+  RUN(test_split_on_continuation);
+  RUN(test_unicode_scalar_values);
+  RUN(test_surrogates);
+  RUN(test_non_shortest_form);
+  RUN(test_non_unicode);
+  RUN(test_bare_continuations);
+  RUN(test_invalid_in_first_third);
+  RUN(test_invalid_in_second_third);
+  RUN(test_invalid_in_third_third);
+  RUN(test_invalid_in_all_thirds);
+  RUN(test_mixed_valid_sequences);
+  RUN(test_large_ascii);
+  RUN(test_large_multibyte);
+  RUN(test_large_3byte);
+  RUN(test_large_with_error_at_every_position);
+  RUN(test_uneven_segments);
+  RUN(test_incoming_state);
+  RUN(test_exhaustive_2byte);
   return report_results();
 }

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #ifdef UTF8_DFA_64
 #  include "utf8_dfa64.h"
@@ -8,6 +9,8 @@
 #endif
 
 #include "utf8_valid.h"
+
+#include "test.h"
 #include "test_util.h"
 
 void test_utf8(const char* src,
@@ -284,15 +287,16 @@ test_ascii() {
 
 int
 main(int argc, char **argv) {
-  test_empty();
-  test_unicode_scalar_value();
-  test_surrogates();
-  test_non_shortest_form();
-  test_non_unicode();
-  test_continuations();
-  test_maximal_subpart_edge_cases();
-  test_mixed_sequences();
-  test_5_and_6_byte_sequences();
-  test_ascii();
+  SUITE(__FILE__);
+  RUN(test_empty);
+  RUN(test_unicode_scalar_value);
+  RUN(test_surrogates);
+  RUN(test_non_shortest_form);
+  RUN(test_non_unicode);
+  RUN(test_continuations);
+  RUN(test_maximal_subpart_edge_cases);
+  RUN(test_mixed_sequences);
+  RUN(test_5_and_6_byte_sequences);
+  RUN(test_ascii);
   return report_results();
 }
