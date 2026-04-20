@@ -9,7 +9,7 @@ TEST_CFLAGS     = -std=c99 -O2 -Wall -fsanitize=address,undefined
 
 BENCH_DIR       = benchmark
 BENCH_SRC       = $(BENCH_DIR)/bench.c
-BENCH_BIN       = $(BUILD_DIR)/bench
+BENCH_BIN       = bench
 BENCH_OPTFLAGS ?= -O3 -march=native
 BENCH_CFLAGS   ?= -std=c99 -Wall $(BENCH_OPTFLAGS)
 
@@ -227,10 +227,10 @@ test: $(TESTS)
 	@$(BUILD_DIR)/swar
 	@$(BUILD_DIR)/simd
 
-bench: $(BENCH_SRC) utf8_valid.h | $(BUILD_DIR)
+bench: $(BENCH_SRC) utf8_valid.h
 	$(CC) $(CPPFLAGS) $(BENCH_CFLAGS) -o $(BENCH_BIN) $(BENCH_SRC)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) $(BENCH_BIN)
 
 .PHONY: all test clean bench
