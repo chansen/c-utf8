@@ -65,6 +65,7 @@ typedef struct {
   size_t consumed;
   size_t pending;
   size_t advance;
+  size_t carried;
 } utf8_valid_stream_result_t;
 
 typedef struct {
@@ -139,6 +140,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
         .consumed = carried ? 0 : consumed,
         .pending  = 0,
         .advance  = advance,
+        .carried  = carried,
       };
     }
   }
@@ -151,6 +153,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
       .consumed = len,
       .pending  = 0,
       .advance  = 0,
+      .carried  = 0,
     };
   }
 
@@ -162,6 +165,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
       .consumed = carried ? 0 : consumed,
       .pending  = 0,
       .advance  = chunk_bytes,
+      .carried  = carried,
     };
   }
 
@@ -172,6 +176,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
     .consumed = consumed,
     .pending  = carried + chunk_bytes,
     .advance  = 0,
+    .carried  = 0,
   };
 }
 
