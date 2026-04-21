@@ -202,11 +202,68 @@ test_streaming(void) {
          UTF8_VALID_STREAM_PARTIAL, 0, 1, 0, 0);
   STREAM("eof after carried lead", &st, "", 0, true,
          UTF8_VALID_STREAM_TRUNCATED, 0, 0, 0, 1);
+
+  utf8_valid_stream_init(&st);
+  STREAM("carried 4-byte lead 1/4", &st, "\xF0", 1, false,
+         UTF8_VALID_STREAM_PARTIAL, 0, 1, 0, 0);
+  STREAM("carried 4-byte lead 2/4", &st, "\x9F", 1, false,
+         UTF8_VALID_STREAM_PARTIAL, 0, 2, 0, 0);
+  STREAM("carried 4-byte lead then ASCII", &st, "A", 1, false,
+         UTF8_VALID_STREAM_ILLFORMED, 0, 0, 0, 2);
+
+  utf8_valid_stream_init(&st);
+  STREAM("carried 4-byte lead + 2 cont 1/4", &st, "\xF0", 1, false,
+         UTF8_VALID_STREAM_PARTIAL, 0, 1, 0, 0);
+  STREAM("carried 4-byte lead + 2 cont 2/4", &st, "\x9F", 1, false,
+         UTF8_VALID_STREAM_PARTIAL, 0, 2, 0, 0);
+  STREAM("carried 4-byte lead + 2 cont then ASCII", &st, "\x98""A", 2, false,
+         UTF8_VALID_STREAM_ILLFORMED, 0, 0, 1, 2);
+
+  utf8_valid_stream_init(&st);
+  STREAM("carried 4-byte trunc 1/4", &st, "\xF0", 1, false,
+         UTF8_VALID_STREAM_PARTIAL, 0, 1, 0, 0);
+  STREAM("carried 4-byte trunc 2/4", &st, "\x9F", 1, false,
+         UTF8_VALID_STREAM_PARTIAL, 0, 2, 0, 0);
+  STREAM("carried 4-byte trunc 3/4", &st, "\x98", 1, false,
+         UTF8_VALID_STREAM_PARTIAL, 0, 3, 0, 0);
+  STREAM("eof after carried 4-byte prefix", &st, "", 0, true,
+         UTF8_VALID_STREAM_TRUNCATED, 0, 0, 0, 3);
+}
+
+static void
+test_reconstruction(void) {
+  utf8_valid_stream_t st;
+  utf8_valid_stream_result_t r;
+  size_t chunk_start;
+  size_t error_pos;
+  size_t resume_pos;
+  size_t subpart_len;
+
+  utf8_valid_stream_init(&st);
+  chunk_start = 100;
+
+  r = utf8_valid_stream_check(&st, "\xF0", 1, false);
+  stream_check("reconstruct partial 1", UTF8_VALID_STREAM_PARTIAL,
+               0, 1, 0, 0, r, __LINE__);
+  chunk_start += 1;
+
+  r = utf8_valid_stream_check(&st, "\x9F\x98""A", 3, false);
+  stream_check("reconstruct illformed", UTF8_VALID_STREAM_ILLFORMED,
+               0, 0, 2, 1, r, __LINE__);
+
+  error_pos = chunk_start + r.consumed - r.carried;
+  resume_pos = chunk_start + r.consumed + r.advance;
+  subpart_len = r.carried + r.advance;
+
+  CHECK(error_pos == 100, "reconstruct: error_pos");
+  CHECK(resume_pos == 103, "reconstruct: resume_pos");
+  CHECK(subpart_len == 3, "reconstruct: subpart_len");
 }
 
 int
 main(int argc, char **argv) {
   SUITE(__FILE__);
   RUN(test_streaming);
+  RUN(test_reconstruction);
   return report_results();
 }
