@@ -59,6 +59,7 @@ typedef enum {
  *   pending:   bytes of an incomplete trailing sequence on PARTIAL, else 0.
  *   advance:   bytes to skip on ILLFORMED or TRUNCATED, else 0.
  *              Resume at src[consumed + advance].
+ *   carried:   bytes from a previous chunk that belong to the same subpart.
  */
 typedef struct {
   utf8_valid_stream_status_t status;
@@ -97,8 +98,14 @@ utf8_valid_stream_init(utf8_valid_stream_t *s) {
  *   pending:   bytes of an incomplete trailing sequence on PARTIAL, else 0.
  *   advance:   bytes to skip on ILLFORMED or TRUNCATED, else 0.
  *              Resume at src[consumed + advance].
+ *   carried:   bytes from a previous chunk that belong to the same subpart.
  *
- * On ILLFORMED or TRUNCATED the stream state is reset to UTF8_DFA_ACCEPT.
+ * On ILLFORMED or TRUNCATED:
+ *
+ *   subpart length = carried + advance
+ *   subpart start  = src + consumed - carried   (chunk-relative)
+ *
+ * and the stream state is reset to UTF8_DFA_ACCEPT.
  */
 static inline utf8_valid_stream_result_t
 utf8_valid_stream_check(utf8_valid_stream_t* s,

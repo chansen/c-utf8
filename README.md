@@ -239,9 +239,10 @@ typedef enum {
 
 typedef struct {
   utf8_valid_stream_status_t status;
-  size_t consumed;            // bytes read from src.
+  size_t consumed;            // bytes read from src
   size_t pending;             // bytes in an incomplete trailing sequence, else 0
   size_t advance;             // bytes to skip on ILLFORMED or TRUNCATED, else 0
+  size_t carried;             // bytes from a previous chunk that belong to the same subpart
 } utf8_valid_stream_result_t;
 
 typedef struct {
@@ -265,9 +266,8 @@ state is carried in `utf8_valid_stream_t` across calls.
 
 If the chunk is well-formed and ends on a sequence boundary, status is `OK`.
 If the chunk ends in the middle of a sequence and `eof` is `false`, status is
-`PARTIAL`. In both cases, `consumed` is the number of bytes read from `src`.
-On `PARTIAL`, `pending` is the number of bytes in the incomplete trailing
-sequence. On `OK`, `pending` is 0. `advance` is 0 in both cases.
+`PARTIAL`; `pending` is the number of trailing bytes in that incomplete
+sequence.
 
 If validation stops at an ill-formed sequence, status is `ILLFORMED`. If
 `eof` is `true` and the chunk ends in the middle of a sequence, status is
@@ -277,16 +277,21 @@ On `UTF8_VALID_STREAM_ILLFORMED` or `UTF8_VALID_STREAM_TRUNCATED`, the stream
 state resets to `ACCEPT` automatically so the caller can continue without
 reinitialising.
 
-On `ILLFORMED` or `TRUNCATED`, `consumed` is the byte offset of the ill-formed 
-or truncated sequence, `pending` is 0, and `advance` is the number of bytes
-in the current chunk that belong to it. Resume validation at
-`src[consumed + advance]`.
+On `ILLFORMED` or `TRUNCATED`, `pending` is 0. `advance` is the number of
+bytes in the current chunk that belong to the subpart, and `carried` is the
+number of bytes from previous chunks that belong to the same subpart. Resume
+validation at `src[consumed + advance]`.
+
+If the current chunk starts at absolute offset `stream_offset`, then
+`stream_offset + consumed - carried` is the error position,
+`carried + advance` is the subpart length, and
+`stream_offset + consumed + advance` is the resume position.
 
 ```c
 utf8_valid_stream_t s;
 utf8_valid_stream_init(&s);
 
-size_t stream_offset = 0;
+size_t stream_offset = 0;  // absolute offset of current chunk start
 bool valid = true;
 
 while (valid && (len = read_chunk(buf, sizeof buf)) > 0) {
@@ -299,11 +304,16 @@ while (valid && (len = read_chunk(buf, sizeof buf)) > 0) {
     stream_offset += len;
     break;
   case UTF8_VALID_STREAM_ILLFORMED:
-  case UTF8_VALID_STREAM_TRUNCATED:
-    stream_offset += r.consumed + r.advance;
-    handle_error(stream_offset);
+  case UTF8_VALID_STREAM_TRUNCATED: {
+    size_t error_pos   = stream_offset + r.consumed - r.carried;
+    size_t subpart_len = r.carried + r.advance;
+    size_t resume_pos  = stream_offset + r.consumed + r.advance;
+
+    handle_error(error_pos, subpart_len);
+    stream_offset = resume_pos;
     valid = false;
     break;
+  }
   }
 }
 ```
