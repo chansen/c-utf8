@@ -176,7 +176,6 @@ backend.
 | Transcode to UTF-16/32               | `utf8_dfa64.h`       | —                     |
 | Skip backward N codepoints           | —                    | `utf8_rdfa{32,64}.h`  |
 | Decode backward                      | —                    | `utf8_rdfa64.h`       |
-| Count/skip/decode/transcode (unsafe) | None                 | None                  |
 
 ## API
 
@@ -273,9 +272,8 @@ If validation stops at an ill-formed sequence, status is `ILLFORMED`. If
 `eof` is `true` and the chunk ends in the middle of a sequence, status is
 `TRUNCATED`.
 
-On `UTF8_VALID_STREAM_ILLFORMED` or `UTF8_VALID_STREAM_TRUNCATED`, the stream
-state resets to `ACCEPT` automatically so the caller can continue without
-reinitialising.
+On `ILLFORMED` or `TRUNCATED`, the stream state resets to `ACCEPT` 
+automatically so the caller can continue without reinitialising.
 
 On `ILLFORMED` or `TRUNCATED`, `pending` is 0. `advance` is the number of
 bytes in the current chunk that belong to the subpart, and `carried` is the
