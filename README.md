@@ -553,8 +553,7 @@ size_t utf8_distance_unsafe(const char *src, size_t len);
 ```
 
 **`utf8_distance_unsafe`** returns the number of codepoints in `src[0..len)`. 
-Uses SIMD (when available) or SWAR to process 32-byte blocks in bulk, then 
-8-byte SWAR blocks, then a scalar tail. Cannot fail.
+Uses SIMD (when available) or SWAR to process blocks in bulk. Cannot fail.
 
 ---
 
@@ -625,7 +624,7 @@ Returns `0` when `len` is 0.
 
 ### Unsafe transcoding — `utf8_transcode_unsafe.h`
 
-Requires `utf8_transcode_common.h` (included automatically).
+No DFA backend required.
 
 ```c
 utf8_transcode_result_t utf8_transcode_utf32_unsafe(const char *src, size_t src_len,
@@ -704,10 +703,9 @@ no use of `errno`.
 **No data-dependent branches on byte value.** The DFA step is a table lookup
 and bitwise shift with no conditional branches that depend on the input byte.
 Execution time scales with the number of bytes processed, not their values.
-Note that the `_ascii` variants (`utf8_valid_ascii`, `utf8_check_ascii`,
-`utf8_distance_ascii`, `utf8_advance_forward_ascii`, and
-`utf8_advance_backward_ascii`) are exceptions; they branch on whether a chunk 
-contains only ASCII bytes, making their execution time content-dependent.
+Note that the `_ascii` variants are exceptions; they branch on whether a
+chunk contains only ASCII bytes, making their execution time
+content-dependent.
 The `_unsafe` variants also use content-dependent branching (lead-byte
 classification) since they are intended for performance-critical paths where
 the input is already trusted.
