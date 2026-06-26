@@ -80,6 +80,18 @@ utf8_valid_stream_init(utf8_valid_stream_t *s) {
   s->pending = 0;
 }
 
+static inline size_t
+utf8_valid_stream_dual_prefix(const uint8_t *bytes, size_t len) {
+  size_t probe = len > 256 ? 256 : len - 1;
+
+  // Back up to a definite UTF-8 boundary:
+  // the start of the final sequence in the probe window.
+  while (probe > 0 && (bytes[probe] & 0xC0) == 0x80)
+    probe--;
+
+  return probe;
+}
+
 /*
  * utf8_valid_stream_check -- validate the next chunk of a UTF-8 stream.
  *
@@ -118,24 +130,26 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
   size_t consumed = 0;
   size_t chunk_bytes = 0;
   size_t pos = 0;
+  bool run_dual = true;
 
-  if (state == UTF8_DFA_ACCEPT && len >= 16) {
-    do {
-      if (utf8_dfa_run16(UTF8_DFA_ACCEPT, bytes + pos) != UTF8_DFA_ACCEPT)
-        break;
-      pos += 16;
-    } while (len - pos >= 16);
-    consumed = pos;
-  }
-
-  for (; pos < len; pos++) {
-    state = utf8_dfa_step(state, bytes[pos]);
+  while (pos < len) {
+    state = utf8_dfa_step(state, bytes[pos++]);
     chunk_bytes++;
 
     if (state == UTF8_DFA_ACCEPT) {
-      consumed = pos + 1;
-      carried = 0;
+      if (run_dual && len - pos >= 64) {
+        do {
+          size_t probe = utf8_valid_stream_dual_prefix(bytes + pos, len - pos);
+          if (probe < 64 || utf8_dfa_run_dual(UTF8_DFA_ACCEPT, bytes + pos, probe) != UTF8_DFA_ACCEPT) {
+            run_dual = false;
+            break;
+          }
+          pos += probe;
+        } while (len - pos >= 64);
+      }
+      consumed = pos;
       chunk_bytes = 0;
+      carried = 0;
     }
     else if (state == UTF8_DFA_REJECT) {
       size_t total = carried + chunk_bytes;
