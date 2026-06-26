@@ -84,6 +84,181 @@ static void test_hsum_bytes8(void) {
         "hsum_bytes8: all lanes 127");
 }
 
+static void test_has_predicates(void) {
+  uint64_t hi = UINT64_C(0x8080808080808080);
+
+  // has_zero8
+  CHECK_WORD(utf8_swar_has_zero8(0), hi, "has_zero8: all zero");
+  for (int b = 1; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    CHECK_WORD(utf8_swar_has_zero8(w), 0, "has_zero8: uniform non-zero");
+  }
+
+  // has_byte8
+  for (int b = 0; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    CHECK_WORD(utf8_swar_has_byte8(w, (uint8_t)b), hi,
+               "has_byte8: uniform match");
+    CHECK_WORD(utf8_swar_has_byte8(w, (uint8_t)(b ^ 1)), 0,
+               "has_byte8: uniform mismatch");
+  }
+
+  // has_newline8
+  {
+    uint64_t w = 0;
+    memset(&w, '\n', sizeof w);
+    CHECK_WORD(utf8_swar_has_newline8(w), hi, "has_newline8: all newlines");
+  }
+  {
+    uint64_t w = 0;
+    memset(&w, 'A', sizeof w);
+    CHECK_WORD(utf8_swar_has_newline8(w), 0, "has_newline8: no newlines");
+  }
+
+  // has_ascii8
+  for (int b = 0; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    uint64_t expected = is_ascii((unsigned char)b) ? hi : 0;
+    CHECK_WORD(utf8_swar_has_ascii8(w), expected, "has_ascii8: uniform byte");
+  }
+
+  // has_continuations8
+  for (int b = 0; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    uint64_t expected = is_cont((unsigned char)b) ? hi : 0;
+    CHECK_WORD(utf8_swar_has_continuations8(w), expected,
+               "has_continuations8: uniform byte");
+  }
+
+  // has_non_continuations8
+  for (int b = 0; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    uint64_t expected = is_non_cont((unsigned char)b) ? hi : 0;
+    CHECK_WORD(utf8_swar_has_non_continuations8(w), expected,
+               "has_non_continuations8: uniform byte");
+  }
+
+  // has >> 7 == mark for all predicates, all byte values
+  for (int b = 0; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    CHECK_WORD(utf8_swar_has_zero8(w) >> 7,
+               utf8_swar_mark_zero8(w),
+               "has>>7 == mark: zero8");
+    CHECK_WORD(utf8_swar_has_byte8(w, (uint8_t)b) >> 7,
+               utf8_swar_mark_byte8(w, (uint8_t)b),
+               "has>>7 == mark: byte8");
+    CHECK_WORD(utf8_swar_has_newline8(w) >> 7,
+               utf8_swar_mark_newline8(w),
+               "has>>7 == mark: newline8");
+    CHECK_WORD(utf8_swar_has_ascii8(w) >> 7,
+               utf8_swar_mark_ascii8(w),
+               "has>>7 == mark: ascii8");
+    CHECK_WORD(utf8_swar_has_continuations8(w) >> 7,
+               utf8_swar_mark_continuations8(w),
+               "has>>7 == mark: continuations8");
+    CHECK_WORD(utf8_swar_has_non_continuations8(w) >> 7,
+               utf8_swar_mark_non_continuations8(w),
+               "has>>7 == mark: non_continuations8");
+  }
+}
+
+static void test_mark_zero8(void) {
+  uint64_t all = UINT64_C(0x0101010101010101);
+
+  // All-zero word: every lane marked.
+  CHECK_WORD(utf8_swar_mark_zero8(0), all, "mark_zero8: all zero");
+
+  // Uniform non-zero: no lane marked.
+  for (int b = 1; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    CHECK_WORD(utf8_swar_mark_zero8(w), 0, "mark_zero8: uniform non-zero");
+  }
+
+  // Single zero in each lane position.
+  for (int pos = 0; pos < 8; pos++) {
+    uint64_t w = UINT64_C(0xFFFFFFFFFFFFFFFF);
+    ((uint8_t *)&w)[pos] = 0;
+    uint64_t expected = (uint64_t)1 << (pos * 8);
+    CHECK_WORD(utf8_swar_mark_zero8(w), expected, "mark_zero8: single lane");
+  }
+}
+
+static void test_mark_byte8(void) {
+  uint64_t all = UINT64_C(0x0101010101010101);
+
+  // Every byte value: uniform word should mark all lanes.
+  for (int b = 0; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    CHECK_WORD(utf8_swar_mark_byte8(w, (uint8_t)b), all,
+               "mark_byte8: uniform match");
+  }
+
+  // Every byte value: uniform word of different value should mark nothing.
+  for (int b = 0; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    uint8_t other = (uint8_t)(b ^ 1);
+    CHECK_WORD(utf8_swar_mark_byte8(w, other), 0,
+               "mark_byte8: uniform mismatch");
+  }
+
+  // Mixed: one matching byte among non-matching.
+  for (int pos = 0; pos < 8; pos++) {
+    uint64_t w = UINT64_C(0x4141414141414141); // all 'A'
+    ((uint8_t *)&w)[pos] = 0x42;               // 'B' at pos
+    uint64_t expected = (uint64_t)1 << (pos * 8);
+    CHECK_WORD(utf8_swar_mark_byte8(w, 0x42), expected,
+               "mark_byte8: single match");
+  }
+}
+
+static void test_mark_newline8(void) {
+  uint64_t all = UINT64_C(0x0101010101010101);
+
+  // All newlines.
+  {
+    uint64_t w = 0;
+    memset(&w, '\n', sizeof w);
+    CHECK_WORD(utf8_swar_mark_newline8(w), all, "mark_newline8: all newlines");
+  }
+
+  // No newlines.
+  {
+    uint64_t w = 0;
+    memset(&w, 'A', sizeof w);
+    CHECK_WORD(utf8_swar_mark_newline8(w), 0, "mark_newline8: no newlines");
+  }
+
+  // All-zero (NUL != newline).
+  CHECK_WORD(utf8_swar_mark_newline8(0), 0, "mark_newline8: all zero");
+
+  // Single newline in each lane.
+  for (int pos = 0; pos < 8; pos++) {
+    uint64_t w = UINT64_C(0x4141414141414141);
+    ((uint8_t *)&w)[pos] = '\n';
+    uint64_t expected = (uint64_t)1 << (pos * 8);
+    CHECK_WORD(utf8_swar_mark_newline8(w), expected,
+               "mark_newline8: single lane");
+  }
+
+  // Agrees with mark_byte8.
+  for (int b = 0; b < 256; b++) {
+    uint64_t w = 0;
+    memset(&w, b, sizeof w);
+    CHECK_WORD(utf8_swar_mark_newline8(w),
+               utf8_swar_mark_byte8(w, '\n'),
+               "mark_newline8: agrees with mark_byte8");
+  }
+}
+
 static void test_mark_ascii8(void) {
   uint64_t all = UINT64_C(0x0101010101010101);
 
@@ -292,6 +467,10 @@ int main(void) {
   SUITE(__FILE__);
   RUN(test_hsum_bits8);
   RUN(test_hsum_bytes8);
+  RUN(test_has_predicates);
+  RUN(test_mark_zero8);
+  RUN(test_mark_byte8);
+  RUN(test_mark_newline8);
   RUN(test_mark_ascii8);
   RUN(test_mark_non_continuations8);
   RUN(test_mark_continuations8);
