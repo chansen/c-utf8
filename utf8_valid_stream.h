@@ -81,7 +81,7 @@ utf8_valid_stream_init(utf8_valid_stream_t *s) {
 }
 
 static inline size_t
-utf8_valid_stream_dual_prefix(const uint8_t *bytes, size_t len) {
+utf8_valid_stream_probe_boundary(const uint8_t *bytes, size_t len) {
   size_t probe = len > 256 ? 256 : len - 1;
 
   // Back up to a definite UTF-8 boundary:
@@ -130,20 +130,24 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
   size_t consumed = 0;
   size_t chunk_bytes = 0;
   size_t pos = 0;
-  bool run_dual = true;
+  bool dfa_run = true;
 
   while (pos < len) {
     state = utf8_dfa_step(state, bytes[pos++]);
     chunk_bytes++;
 
     if (state == UTF8_DFA_ACCEPT) {
-      if (run_dual && len - pos >= 64) {
+      if (dfa_run && len - pos >= 64) {
         do {
-          size_t probe = utf8_valid_stream_dual_prefix(bytes + pos, len - pos);
-          if (probe < 64 || utf8_dfa_run_dual(UTF8_DFA_ACCEPT, bytes + pos, probe) != UTF8_DFA_ACCEPT) {
-            run_dual = false;
+          size_t probe = utf8_valid_stream_probe_boundary(bytes + pos, len - pos);
+          if (probe == 0)
+            dfa_run = false;
+          else if (probe < 64)
+            dfa_run = utf8_dfa_run(UTF8_DFA_ACCEPT, bytes + pos, probe) == UTF8_DFA_ACCEPT;
+          else
+            dfa_run = utf8_dfa_run_dual(UTF8_DFA_ACCEPT, bytes + pos, probe) == UTF8_DFA_ACCEPT;
+          if (!dfa_run)
             break;
-          }
           pos += probe;
         } while (len - pos >= 64);
       }
