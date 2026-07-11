@@ -71,13 +71,13 @@ typedef struct {
 
 typedef struct {
   utf8_dfa_state_t state;
-  size_t pending;
+  size_t carried;
 } utf8_valid_stream_t;
 
 static inline void
 utf8_valid_stream_init(utf8_valid_stream_t *s) {
   s->state = UTF8_DFA_ACCEPT;
-  s->pending = 0;
+  s->carried = 0;
 }
 
 static inline size_t
@@ -134,7 +134,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
                         bool eof) {
   const uint8_t* bytes = (const uint8_t*)src;
   utf8_dfa_state_t state = s->state;
-  size_t carried = s->pending;
+  size_t carried = s->carried;
   size_t consumed = 0;
   size_t chunk_bytes = 0;
   size_t pos = 0;
@@ -167,7 +167,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
       size_t total = carried + chunk_bytes;
       size_t advance = total > 1 ? chunk_bytes - 1 : 1;
       s->state = UTF8_DFA_ACCEPT;
-      s->pending = 0;
+      s->carried = 0;
       return (utf8_valid_stream_result_t){
         .status   = UTF8_VALID_STREAM_ILLFORMED,
         .consumed = carried ? 0 : consumed,
@@ -180,7 +180,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
 
   if (state == UTF8_DFA_ACCEPT) {
     s->state = UTF8_DFA_ACCEPT;
-    s->pending = 0;
+    s->carried = 0;
     return (utf8_valid_stream_result_t){
       .status   = UTF8_VALID_STREAM_OK,
       .consumed = len,
@@ -192,7 +192,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
 
   if (eof) {
     s->state = UTF8_DFA_ACCEPT;
-    s->pending = 0;
+    s->carried = 0;
     return (utf8_valid_stream_result_t){
       .status   = UTF8_VALID_STREAM_TRUNCATED,
       .consumed = carried ? 0 : consumed,
@@ -203,7 +203,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
   }
 
   s->state = state;
-  s->pending = carried + chunk_bytes;
+  s->carried = carried + chunk_bytes;
   return (utf8_valid_stream_result_t){
     .status   = UTF8_VALID_STREAM_PARTIAL,
     .consumed = consumed,

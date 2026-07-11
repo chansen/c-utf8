@@ -246,7 +246,7 @@ typedef struct {
 
 typedef struct {
   utf8_dfa_state_t state;
-  size_t pending;
+  size_t carried;
 } utf8_valid_stream_t;
 
 void   utf8_valid_stream_init(utf8_valid_stream_t *s);
