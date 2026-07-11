@@ -82,7 +82,15 @@ utf8_valid_stream_init(utf8_valid_stream_t *s) {
 
 static inline size_t
 utf8_valid_stream_probe_boundary(const uint8_t *bytes, size_t len) {
-  size_t probe = len > 256 ? 256 : len - 1;
+#ifdef UTF8_VALID_STREAM_PROBE_WINDOW_SIZE
+#  if UTF8_VALID_STREAM_PROBE_WINDOW_SIZE < 64
+#    error "UTF8_VALID_STREAM_PROBE_WINDOW_SIZE must be greater than 63"
+#  endif
+  static const size_t max = UTF8_VALID_STREAM_PROBE_WINDOW_SIZE;
+#else
+  static const size_t max = 256;
+#endif
+  size_t probe = len > max ? max : len - 1;
 
   // Back up to a definite UTF-8 boundary:
   // the start of the final sequence in the probe window.
