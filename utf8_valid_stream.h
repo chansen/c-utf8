@@ -35,6 +35,14 @@
 extern "C" {
 #endif
 
+#ifdef UTF8_VALID_STREAM_PROBE_WINDOW_SIZE
+#  if UTF8_VALID_STREAM_PROBE_WINDOW_SIZE < 64
+#    error "UTF8_VALID_STREAM_PROBE_WINDOW_SIZE must be greater than 63"
+#  endif
+#else
+#  define UTF8_VALID_STREAM_PROBE_WINDOW_SIZE 256
+#endif
+
 /*
  * utf8_valid_stream_status_t -- outcome of a streaming validation step.
  *
@@ -72,25 +80,32 @@ typedef struct {
 typedef struct {
   utf8_dfa_state_t state;
   size_t carried;
+  size_t probe_window;
 } utf8_valid_stream_t;
+
+static inline void
+utf8_valid_stream_set_window(utf8_valid_stream_t *s, size_t window) {
+  s->probe_window = window >= 64 ? window : 64;
+}
 
 static inline void
 utf8_valid_stream_init(utf8_valid_stream_t *s) {
   s->state = UTF8_DFA_ACCEPT;
   s->carried = 0;
+  s->probe_window = UTF8_VALID_STREAM_PROBE_WINDOW_SIZE;
+}
+
+static inline void
+utf8_valid_stream_init_window(utf8_valid_stream_t *s, size_t window) {
+  utf8_valid_stream_init(s);
+  utf8_valid_stream_set_window(s, window);
 }
 
 static inline size_t
-utf8_valid_stream_probe_boundary(const uint8_t *bytes, size_t len) {
-#ifdef UTF8_VALID_STREAM_PROBE_WINDOW_SIZE
-#  if UTF8_VALID_STREAM_PROBE_WINDOW_SIZE < 64
-#    error "UTF8_VALID_STREAM_PROBE_WINDOW_SIZE must be greater than 63"
-#  endif
-  static const size_t max = UTF8_VALID_STREAM_PROBE_WINDOW_SIZE;
-#else
-  static const size_t max = 256;
-#endif
-  size_t probe = len > max ? max : len - 1;
+utf8_valid_stream_probe_boundary(const uint8_t *bytes, 
+                                 size_t len, 
+                                 size_t probe_window) {
+  size_t probe = len > probe_window ? probe_window : len - 1;
 
   // Back up to a definite UTF-8 boundary:
   // the start of the final sequence in the probe window.
@@ -147,7 +162,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
     if (state == UTF8_DFA_ACCEPT) {
       if (dfa_run && len - pos >= 64) {
         do {
-          size_t probe = utf8_valid_stream_probe_boundary(bytes + pos, len - pos);
+          size_t probe = utf8_valid_stream_probe_boundary(bytes + pos, len - pos, s->probe_window);
           if (probe == 0)
             dfa_run = false;
           else if (probe < 64)
