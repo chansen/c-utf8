@@ -247,9 +247,12 @@ typedef struct {
 typedef struct {
   utf8_dfa_state_t state;
   size_t carried;
+  size_t probe_window;        // bulk look-ahead bound (bytes); tuning only
 } utf8_valid_stream_t;
 
 void   utf8_valid_stream_init(utf8_valid_stream_t *s);
+void   utf8_valid_stream_init_window(utf8_valid_stream_t *s, size_t window);
+void   utf8_valid_stream_set_window(utf8_valid_stream_t *s, size_t window);
 utf8_valid_stream_result_t utf8_valid_stream_check(utf8_valid_stream_t *s,
                                                    const char *src, 
                                                    size_t len,
@@ -257,7 +260,16 @@ utf8_valid_stream_result_t utf8_valid_stream_check(utf8_valid_stream_t *s,
 ```
 
 **`utf8_valid_stream_init`** initialises a stream validator. Call this before
-the first `utf8_valid_stream_check`.
+the first `utf8_valid_stream_check`. The probe window is set to the default
+(`UTF8_VALID_STREAM_PROBE_WINDOW_SIZE`, 256).
+
+**`utf8_valid_stream_init_window`** initialises a stream validator and sets an
+explicit probe window in one call. Equivalent to `utf8_valid_stream_init`
+followed by `utf8_valid_stream_set_window`.
+
+**`utf8_valid_stream_set_window`** sets the probe window on an already
+initialised validator. It may be called at any time, including between chunks.
+Values below 64 are clamped to 64.
 
 **`utf8_valid_stream_check`** validates `src[0..len)` as the next chunk of a
 UTF-8 byte stream. `eof` should be `true` only for the final chunk. The DFA
@@ -314,6 +326,43 @@ while (valid && (len = read_chunk(buf, sizeof buf)) > 0) {
   }
   }
 }
+```
+
+#### Probe window
+
+Within a chunk, the validator steps byte-by-byte through the DFA until it
+reaches a sequence boundary, then hands a run of following bytes to the bulk
+fast path in one go. The bulk path only engages while at least 64 bytes
+remain; shorter chunks — and the trailing bytes of any chunk once fewer than
+64 remain — are validated byte-by-byte, and the probe window has no effect on
+them.
+
+When the bulk path is active, the **probe window** bounds how far ahead it
+looks when choosing that run: the effective run is
+`min(probe_window, remaining - 1)`, backed up to the last sequence boundary
+within it.
+
+The bulk path only reports whether a run is entirely well-formed. If it
+detects an error, it does not pinpoint it: the validator falls back to
+scanning that window byte-by-byte to find the exact ill-formed sequence and
+its position. Error reporting is therefore unaffected by the window — only the
+work done to reach the error differs.
+
+The probe window affects throughput only — validation results are identical
+for any window. A larger window means fewer boundary scans and longer bulk
+runs, which favours large, mostly-valid input (e.g. reading a file from disk).
+A smaller window does less speculative look-ahead per step, which suits small
+chunks that arrive piecemeal (e.g. reading from a socket).
+
+Set it per stream with `utf8_valid_stream_init_window` or
+`utf8_valid_stream_set_window`; values below 64 are clamped to 64. The
+compile-time default is controlled by `UTF8_VALID_STREAM_PROBE_WINDOW_SIZE`
+(default 256), which must be at least 64 (enforced at compile time):
+
+```c
+// raise the default window for all streams in this translation unit
+#define UTF8_VALID_STREAM_PROBE_WINDOW_SIZE 4096
+#include "utf8_valid_stream.h"
 ```
 
 ---
