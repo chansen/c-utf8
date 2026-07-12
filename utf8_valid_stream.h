@@ -35,11 +35,7 @@
 extern "C" {
 #endif
 
-#ifdef UTF8_VALID_STREAM_PROBE_WINDOW_SIZE
-#  if UTF8_VALID_STREAM_PROBE_WINDOW_SIZE < 64
-#    error "UTF8_VALID_STREAM_PROBE_WINDOW_SIZE must be greater than 63"
-#  endif
-#else
+#ifndef UTF8_VALID_STREAM_PROBE_WINDOW_SIZE
 #  define UTF8_VALID_STREAM_PROBE_WINDOW_SIZE 256
 #endif
 
@@ -85,7 +81,7 @@ typedef struct {
 
 static inline void
 utf8_valid_stream_set_window(utf8_valid_stream_t *s, size_t window) {
-  s->probe_window = window >= 64 ? window : 64;
+  s->probe_window = window;
 }
 
 static inline void
@@ -153,7 +149,7 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
   size_t consumed = 0;
   size_t chunk_bytes = 0;
   size_t pos = 0;
-  bool dfa_run = true;
+  bool dfa_run = s->probe_window >= 64;
 
   while (pos < len) {
     state = utf8_dfa_step(state, bytes[pos++]);

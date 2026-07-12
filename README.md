@@ -269,7 +269,7 @@ followed by `utf8_valid_stream_set_window`.
 
 **`utf8_valid_stream_set_window`** sets the probe window on an already
 initialised validator. It may be called at any time, including between chunks.
-Values below 64 are clamped to 64.
+A value below 64 disables probing (pure byte-by-byte validation).
 
 **`utf8_valid_stream_check`** validates `src[0..len)` as the next chunk of a
 UTF-8 byte stream. `eof` should be `true` only for the final chunk. The DFA
@@ -352,12 +352,13 @@ The probe window affects throughput only — validation results are identical
 for any window. A larger window means fewer boundary scans and longer bulk
 runs, which favours large, mostly-valid input (e.g. reading a file from disk).
 A smaller window does less speculative look-ahead per step, which suits small
-chunks that arrive piecemeal (e.g. reading from a socket).
+chunks that arrive piecemeal (e.g. reading from a socket). A value below 64
+disables probing entirely, so every byte goes through the DFA.
 
 Set it per stream with `utf8_valid_stream_init_window` or
-`utf8_valid_stream_set_window`; values below 64 are clamped to 64. The
-compile-time default is controlled by `UTF8_VALID_STREAM_PROBE_WINDOW_SIZE`
-(default 256), which must be at least 64 (enforced at compile time):
+`utf8_valid_stream_set_window`. The compile-time default is controlled by
+`UTF8_VALID_STREAM_PROBE_WINDOW_SIZE` (default 256); setting it below 64
+disables probing by default:
 
 ```c
 // raise the default window for all streams in this translation unit
