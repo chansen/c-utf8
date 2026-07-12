@@ -330,30 +330,20 @@ while (valid && (len = read_chunk(buf, sizeof buf)) > 0) {
 
 #### Probe window
 
-Within a chunk, the validator steps byte-by-byte through the DFA until it
-reaches a sequence boundary, then hands a run of following bytes to the bulk
-fast path in one go. The bulk path only engages while at least 64 bytes
-remain; shorter chunks — and the trailing bytes of any chunk once fewer than
-64 remain — are validated byte-by-byte, and the probe window has no effect on
-them.
+After each sequence boundary, the validator hands the following bytes to a
+bulk DFA path instead of stepping one byte at a time. The **probe window**
+caps that run at `min(probe_window, remaining - 1)` bytes, trimmed to the last
+sequence boundary within it.
 
-When the bulk path is active, the **probe window** bounds how far ahead it
-looks when choosing that run: the effective run is
-`min(probe_window, remaining - 1)`, backed up to the last sequence boundary
-within it.
+The window is a throughput knob only; results are identical for any value.
+The bulk path needs at least 64 bytes to engage, so shorter inputs and
+trailing bytes are always stepped one at a time. A larger window suits large,
+mostly-valid input (disk reads); a smaller one suits small piecemeal chunks
+(sockets). A value below 64 disables the bulk path entirely.
 
-The bulk path only reports whether a run is entirely well-formed. If it
-detects an error, it does not pinpoint it: the validator falls back to
-scanning that window byte-by-byte to find the exact ill-formed sequence and
-its position. Error reporting is therefore unaffected by the window — only the
-work done to reach the error differs.
-
-The probe window affects throughput only — validation results are identical
-for any window. A larger window means fewer boundary scans and longer bulk
-runs, which favours large, mostly-valid input (e.g. reading a file from disk).
-A smaller window does less speculative look-ahead per step, which suits small
-chunks that arrive piecemeal (e.g. reading from a socket). A value below 64
-disables probing entirely, so every byte goes through the DFA.
+On error the bulk path only signals *that* a run is ill-formed; the exact
+position is found by re-stepping that run, so the window never affects
+reported errors.
 
 Set it per stream with `utf8_valid_stream_init_window` or
 `utf8_valid_stream_set_window`. The compile-time default is controlled by
