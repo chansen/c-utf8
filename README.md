@@ -267,6 +267,10 @@ the first `utf8_valid_stream_check`. The probe window is set to the default
 initialised validator. It may be called at any time, including between chunks.
 A value below 64 disables probing (pure byte-by-byte validation).
 
+**`utf8_valid_stream_set_ascii`** enables or disables the ASCII fast path for
+the bulk probe (default off). It may be called at any time, including between
+chunks.
+
 **`utf8_valid_stream_check`** validates `src[0..len)` as the next chunk of a
 UTF-8 byte stream. `eof` should be `true` only for the final chunk. The DFA
 state is carried in `utf8_valid_stream_t` across calls.
@@ -336,6 +340,11 @@ The bulk path needs at least 64 bytes to engage, so shorter inputs and
 trailing bytes are always stepped one at a time. A larger window suits large,
 mostly-valid input (disk reads); a smaller one suits small piecemeal chunks
 (sockets). A value below 64 disables the bulk path entirely.
+
+By default the bulk path uses a dual-stream DFA pass.
+`utf8_valid_stream_set_ascii(s, true)` switches it to an ASCII-skipping pass
+that jumps over all-ASCII 16-byte blocks and steps the rest single-stream.
+This is faster on ASCII-leaning streams and slower on multibyte-heavy ones.
 
 On error the bulk path only signals *that* a run is ill-formed; the exact
 position is found by re-stepping that run, so the window never affects
