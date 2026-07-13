@@ -102,12 +102,6 @@ utf8_valid_stream_init(utf8_valid_stream_t *s) {
 #endif
 }
 
-static inline void
-utf8_valid_stream_init_window(utf8_valid_stream_t *s, size_t window) {
-  utf8_valid_stream_init(s);
-  utf8_valid_stream_set_window(s, window);
-}
-
 static inline size_t
 utf8_valid_stream_probe_boundary(const uint8_t *bytes, 
                                  size_t len, 

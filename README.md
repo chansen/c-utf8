@@ -263,10 +263,6 @@ utf8_valid_stream_result_t utf8_valid_stream_check(utf8_valid_stream_t *s,
 the first `utf8_valid_stream_check`. The probe window is set to the default
 (`UTF8_VALID_STREAM_PROBE_WINDOW_SIZE`, 256).
 
-**`utf8_valid_stream_init_window`** initialises a stream validator and sets an
-explicit probe window in one call. Equivalent to `utf8_valid_stream_init`
-followed by `utf8_valid_stream_set_window`.
-
 **`utf8_valid_stream_set_window`** sets the probe window on an already
 initialised validator. It may be called at any time, including between chunks.
 A value below 64 disables probing (pure byte-by-byte validation).
@@ -345,10 +341,9 @@ On error the bulk path only signals *that* a run is ill-formed; the exact
 position is found by re-stepping that run, so the window never affects
 reported errors.
 
-Set it per stream with `utf8_valid_stream_init_window` or
-`utf8_valid_stream_set_window`. The compile-time default is controlled by
-`UTF8_VALID_STREAM_PROBE_WINDOW_SIZE` (default 256); setting it below 64
-disables probing by default:
+Set it per stream with `utf8_valid_stream_set_window`. The compile-time
+default is controlled by `UTF8_VALID_STREAM_PROBE_WINDOW_SIZE` (default 256);
+setting it below 64 disables probing by default:
 
 ```c
 // raise the default window for all streams in this translation unit
