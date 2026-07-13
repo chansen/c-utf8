@@ -77,6 +77,7 @@ typedef struct {
   utf8_dfa_state_t state;
   size_t carried;
   size_t probe_window;
+  bool probe_ascii;
 } utf8_valid_stream_t;
 
 static inline void
@@ -85,10 +86,20 @@ utf8_valid_stream_set_window(utf8_valid_stream_t *s, size_t window) {
 }
 
 static inline void
+utf8_valid_stream_set_ascii(utf8_valid_stream_t *s, bool ascii) {
+  s->probe_ascii = ascii;
+}
+
+static inline void
 utf8_valid_stream_init(utf8_valid_stream_t *s) {
   s->state = UTF8_DFA_ACCEPT;
   s->carried = 0;
   s->probe_window = UTF8_VALID_STREAM_PROBE_WINDOW_SIZE;
+#ifdef UTF8_VALID_STREAM_PROBE_ASCII
+  s->probe_ascii = true;
+#else
+  s->probe_ascii = false;
+#endif
 }
 
 static inline void
@@ -163,6 +174,8 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
             dfa_run = false;
           else if (probe < 64)
             dfa_run = utf8_dfa_run(UTF8_DFA_ACCEPT, bytes + pos, probe) == UTF8_DFA_ACCEPT;
+          else if (s->probe_ascii)
+            dfa_run = utf8_dfa_run_ascii(UTF8_DFA_ACCEPT, bytes + pos, probe) == UTF8_DFA_ACCEPT;
           else
             dfa_run = utf8_dfa_run_dual(UTF8_DFA_ACCEPT, bytes + pos, probe) == UTF8_DFA_ACCEPT;
           if (!dfa_run)
