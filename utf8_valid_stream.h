@@ -122,6 +122,22 @@ utf8_valid_stream_probe_boundary(const uint8_t *bytes,
   return probe;
 }
 
+static inline bool
+utf8_valid_stream_probe_run(const uint8_t *bytes, 
+                            size_t len, 
+                            bool ascii) {
+  utf8_dfa_state_t state;
+
+  if (len < 64)
+    state = utf8_dfa_run(UTF8_DFA_ACCEPT, bytes, len);
+  else if (ascii)
+    state = utf8_dfa_run_ascii(UTF8_DFA_ACCEPT, bytes, len);
+  else
+    state = utf8_dfa_run_dual(UTF8_DFA_ACCEPT, bytes, len);
+
+  return state == UTF8_DFA_ACCEPT;
+}
+
 /*
  * utf8_valid_stream_check -- validate the next chunk of a UTF-8 stream.
  *
@@ -160,25 +176,21 @@ utf8_valid_stream_check(utf8_valid_stream_t* s,
   size_t consumed = 0;
   size_t chunk_bytes = 0;
   size_t pos = 0;
-  bool dfa_run = s->probe_window >= 64;
+  bool probe_run = s->probe_window >= 64;
 
   while (pos < len) {
     state = utf8_dfa_step(state, bytes[pos++]);
     chunk_bytes++;
 
     if (state == UTF8_DFA_ACCEPT) {
-      if (dfa_run && len - pos >= 64) {
+      if (probe_run && len - pos >= 64) {
         do {
           size_t probe = utf8_valid_stream_probe_boundary(bytes + pos, len - pos, s->probe_window);
           if (probe == 0)
-            dfa_run = false;
-          else if (probe < 64)
-            dfa_run = utf8_dfa_run(UTF8_DFA_ACCEPT, bytes + pos, probe) == UTF8_DFA_ACCEPT;
-          else if (s->probe_ascii)
-            dfa_run = utf8_dfa_run_ascii(UTF8_DFA_ACCEPT, bytes + pos, probe) == UTF8_DFA_ACCEPT;
+            probe_run = false;
           else
-            dfa_run = utf8_dfa_run_dual(UTF8_DFA_ACCEPT, bytes + pos, probe) == UTF8_DFA_ACCEPT;
-          if (!dfa_run)
+            probe_run = utf8_valid_stream_probe_run(bytes + pos, probe, s->probe_ascii);
+          if (!probe_run)
             break;
           pos += probe;
         } while (len - pos >= 64);
