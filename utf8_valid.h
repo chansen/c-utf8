@@ -32,6 +32,10 @@
 #  error "include utf8_dfa32.h or utf8_dfa64.h before utf8_valid.h"
 #endif
 
+#ifndef UTF8_VALID_BOUNDED_BLOCK_SIZE
+#  define UTF8_VALID_BOUNDED_BLOCK_SIZE 256
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -89,6 +93,41 @@ static inline bool utf8_valid(const char* src, size_t len) {
   return utf8_check(src, len, NULL);
 }
 
+static inline bool utf8_check_bounded(const char* src,
+                                      size_t slen,
+                                      size_t* cursor) {
+  const uint8_t* bytes = (const uint8_t*)src;
+  size_t len = slen;
+  size_t checkpoint = 0;
+  utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
+  const size_t block_size = UTF8_VALID_BOUNDED_BLOCK_SIZE;
+
+  for (; len >= block_size; bytes += block_size, len -= block_size) {
+    state = utf8_dfa_run_dual(state, bytes, block_size);
+    if (state == UTF8_DFA_REJECT)
+      break;
+    if (state == UTF8_DFA_ACCEPT)
+      checkpoint = (size_t)(bytes - (const uint8_t*)src);
+  }
+
+  if (state != UTF8_DFA_REJECT)
+    state = utf8_dfa_run_dual(state, bytes, len);
+
+  if (state == UTF8_DFA_ACCEPT) {
+    if (cursor)
+      *cursor = slen;
+    return true;
+  }
+
+  if (cursor)
+    *cursor = checkpoint + utf8_maximal_prefix(src + checkpoint, slen - checkpoint);
+  return false;
+}
+
+static inline bool utf8_valid_bounded(const char* src, size_t len) {
+  return utf8_check_bounded(src, len, NULL);
+}
+
 static inline bool utf8_check_ascii(const char* src, size_t len, size_t* cursor) {
   utf8_dfa_state_t state;
 
@@ -106,6 +145,41 @@ static inline bool utf8_check_ascii(const char* src, size_t len, size_t* cursor)
 
 static inline bool utf8_valid_ascii(const char *src, size_t len) {
   return utf8_check_ascii(src, len, NULL);
+}
+
+static inline bool utf8_check_ascii_bounded(const char* src,
+                                            size_t slen,
+                                            size_t* cursor) {
+  const uint8_t* bytes = (const uint8_t*)src;
+  size_t len = slen;
+  size_t checkpoint = 0;
+  utf8_dfa_state_t state = UTF8_DFA_ACCEPT;
+  const size_t block_size = UTF8_VALID_BOUNDED_BLOCK_SIZE;
+
+  for (; len >= block_size; bytes += block_size, len -= block_size) {
+    state = utf8_dfa_run_ascii(state, bytes, block_size);
+    if (state == UTF8_DFA_REJECT)
+      break;
+    if (state == UTF8_DFA_ACCEPT)
+      checkpoint = (size_t)(bytes - (const uint8_t*)src);
+  }
+
+  if (state != UTF8_DFA_REJECT)
+    state = utf8_dfa_run_ascii(state, bytes, len);
+
+  if (state == UTF8_DFA_ACCEPT) {
+    if (cursor)
+      *cursor = slen;
+    return true;
+  }
+
+  if (cursor)
+    *cursor = checkpoint + utf8_maximal_prefix(src + checkpoint, slen - checkpoint);
+  return false;
+}
+
+static inline bool utf8_valid_ascii_bounded(const char* src, size_t len) {
+  return utf8_check_ascii_bounded(src, len, NULL);
 }
 
 #ifdef __cplusplus

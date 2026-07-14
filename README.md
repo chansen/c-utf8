@@ -191,30 +191,54 @@ Requires `utf8_dfa32.h` or `utf8_dfa64.h`.
 
 ```c
 bool   utf8_valid(const char *src, size_t len);
-bool   utf8_valid_ascii(const char *src, size_t len);
 bool   utf8_check(const char *src, size_t len, size_t *cursor);
+
+bool   utf8_valid_ascii(const char *src, size_t len);
 bool   utf8_check_ascii(const char *src, size_t len, size_t *cursor);
+
+bool   utf8_valid_bounded(const char *src, size_t len);
+bool   utf8_check_bounded(const char *src, size_t len, size_t *cursor);
+
+bool   utf8_valid_ascii_bounded(const char *src, size_t len);
+bool   utf8_check_ascii_bounded(const char *src, size_t len, size_t *cursor);
+
 size_t utf8_maximal_subpart(const char *src, size_t len);
 ```
 
-**`utf8_valid`** returns `true` if `src[0..len)` is valid UTF-8. Internally
-uses dual-stream validation: the input is split at a sequence boundary near
-the midpoint and two independent DFA chains run in a single interleaved loop,
-exploiting instruction-level parallelism on wide-issue cores.
-
-**`utf8_check`** returns `true` if `src[0..len)` is valid UTF-8. On failure,
-if `cursor` is non-NULL, sets `*cursor` to the byte offset of the first
-ill-formed sequence (the length of the maximal valid prefix). Uses the same
-dual-stream strategy as `utf8_valid`.
+**`utf8_valid`** and **`utf8_check`** return `true` if `src[0..len)` is valid
+UTF-8. Both use dual-stream validation: the input is split at a sequence
+boundary near the midpoint and two independent DFA chains run in a single
+interleaved loop, exploiting instruction-level parallelism on wide-issue
+cores. The whole input is scanned even when an ill-formed byte occurs early;
+use `utf8_valid_bounded` / `utf8_check_bounded` to stop early. On failure, if
+`cursor` is non-NULL, `utf8_check` sets `*cursor` to the byte offset of the
+first ill-formed sequence (the length of the maximal valid prefix).
 
 **`utf8_valid_ascii`** and **`utf8_check_ascii`** are drop-in replacements
 that use a single DFA stream with a 16-byte ASCII fast path. On each
 iteration the fast path checks whether the next 16 bytes are all ASCII; if
 so, it skips them without entering the DFA. When a non-ASCII byte is
 encountered the DFA processes bytes until it returns to the `ACCEPT` state,
-at which point the fast path is re-entered. Behaviour is identical to 
-`utf8_valid` and `utf8_check`. Throughput advantage depends on content mix 
-and microarchitecture; see the [Performance](#performance) section.
+at which point the fast path is re-entered. Like `utf8_valid` and
+`utf8_check`, they scan the whole input even on early error; use
+`utf8_valid_ascii_bounded` / `utf8_check_ascii_bounded` to stop early.
+Behaviour is identical to `utf8_valid` and `utf8_check`. Throughput advantage
+depends on content mix and microarchitecture; see the
+[Performance](#performance) section.
+
+**`utf8_valid_bounded`** and **`utf8_check_bounded`** are drop-in replacements
+that validate the input in fixed-size blocks. An ill-formed byte terminates
+the scan after the current block instead of walking the whole input, and on
+failure the cursor is computed from the last accepted block boundary rather
+than rescanning from the start. Behaviour is identical to `utf8_valid` and
+`utf8_check`. They are slightly slower on well-formed input, so prefer them
+when the input may be ill-formed or when bounding worst-case work matters.
+
+**`utf8_valid_ascii_bounded`** and **`utf8_check_ascii_bounded`** run the
+single-stream 16-byte ASCII fast path in the same fixed-size blocks, giving
+the ASCII fast path the block-bounded early exit and cursor behaviour. Like
+the other bounded variants, they are slightly slower on well-formed input.
+Behaviour is identical to `utf8_valid` and `utf8_check`.
 
 **`utf8_maximal_subpart`** returns the length of the maximal subpart of the
 ill-formed sequence starting at `src[0..len)`, as defined by Unicode 
