@@ -193,11 +193,11 @@ Requires `utf8_dfa32.h` or `utf8_dfa64.h`.
 bool   utf8_valid(const char *src, size_t len);
 bool   utf8_check(const char *src, size_t len, size_t *cursor);
 
-bool   utf8_valid_ascii(const char *src, size_t len);
-bool   utf8_check_ascii(const char *src, size_t len, size_t *cursor);
-
 bool   utf8_valid_bounded(const char *src, size_t len);
 bool   utf8_check_bounded(const char *src, size_t len, size_t *cursor);
+
+bool   utf8_valid_ascii(const char *src, size_t len);
+bool   utf8_check_ascii(const char *src, size_t len, size_t *cursor);
 
 bool   utf8_valid_ascii_bounded(const char *src, size_t len);
 bool   utf8_check_ascii_bounded(const char *src, size_t len, size_t *cursor);
@@ -214,6 +214,14 @@ use `utf8_valid_bounded` / `utf8_check_bounded` to stop early. On failure, if
 `cursor` is non-NULL, `utf8_check` sets `*cursor` to the byte offset of the
 first ill-formed sequence (the length of the maximal valid prefix).
 
+**`utf8_valid_bounded`** and **`utf8_check_bounded`** are drop-in replacements
+that validate the input in fixed-size blocks. An ill-formed byte terminates
+the scan after the current block instead of walking the whole input, and on
+failure the cursor is computed from the last accepted block boundary rather
+than rescanning from the start. Behaviour is identical to `utf8_valid` and
+`utf8_check`. They are slightly slower on well-formed input, so prefer them
+when the input may be ill-formed or when bounding worst-case work matters.
+
 **`utf8_valid_ascii`** and **`utf8_check_ascii`** are drop-in replacements
 that use a single DFA stream with a 16-byte ASCII fast path. On each
 iteration the fast path checks whether the next 16 bytes are all ASCII; if
@@ -225,14 +233,6 @@ at which point the fast path is re-entered. Like `utf8_valid` and
 Behaviour is identical to `utf8_valid` and `utf8_check`. Throughput advantage
 depends on content mix and microarchitecture; see the
 [Performance](#performance) section.
-
-**`utf8_valid_bounded`** and **`utf8_check_bounded`** are drop-in replacements
-that validate the input in fixed-size blocks. An ill-formed byte terminates
-the scan after the current block instead of walking the whole input, and on
-failure the cursor is computed from the last accepted block boundary rather
-than rescanning from the start. Behaviour is identical to `utf8_valid` and
-`utf8_check`. They are slightly slower on well-formed input, so prefer them
-when the input may be ill-formed or when bounding worst-case work matters.
 
 **`utf8_valid_ascii_bounded`** and **`utf8_check_ascii_bounded`** run the
 single-stream 16-byte ASCII fast path in the same fixed-size blocks, giving
