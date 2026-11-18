@@ -144,7 +144,7 @@ state      = (row >> state) & 63;
 | `utf8_dfa64.h` | `uint64_t` | 2 KB       | Yes      |
 
 Use `utf8_dfa32.h` for validation-only work: `utf8_valid.h`,
-`utf8_valid_stream.h`, `utf8_distance.h`, `utf8_advance_forward.h`.
+`utf8_scanner.h`, `utf8_distance.h`, `utf8_advance_forward.h`.
 
 Use `utf8_dfa64.h` when codepoint decoding or transcoding is needed:
 `utf8_decode_next.h`, `utf8_transcode.h`.
@@ -248,97 +248,98 @@ with `src` advanced to the cursor position.
 
 ---
 
-### Streaming validation — `utf8_valid_stream.h`
+### Streaming validation — `utf8_scanner.h`
 
 Requires `utf8_dfa32.h` or `utf8_dfa64.h`.
 
 ```c
 typedef enum {
-  UTF8_VALID_STREAM_OK,         // src fully consumed, no errors
-  UTF8_VALID_STREAM_PARTIAL,    // src fully consumed, ends mid-sequence
-  UTF8_VALID_STREAM_ILLFORMED,  // stopped at an ill-formed subsequence
-  UTF8_VALID_STREAM_TRUNCATED,  // eof is true and src ends mid-sequence
-} utf8_valid_stream_status_t;
+  UTF8_SCANNER_OK,         // src fully consumed, no errors
+  UTF8_SCANNER_PARTIAL,    // src fully consumed, ends mid-sequence
+  UTF8_SCANNER_ILLFORMED,  // stopped at an ill-formed subsequence
+  UTF8_SCANNER_TRUNCATED,  // stream ended mid-sequence (utf8_scanner_finish only)
+} utf8_scanner_status_t;
 
 typedef struct {
-  utf8_valid_stream_status_t status;
+  utf8_scanner_status_t status;
   size_t consumed;            // bytes read from src
   size_t pending;             // bytes in an incomplete trailing sequence, else 0
-  size_t advance;             // bytes to skip on ILLFORMED or TRUNCATED, else 0
+  size_t advance;             // bytes to skip on ILLFORMED, else 0
   size_t carried;             // bytes from a previous chunk that belong to the same subpart
-} utf8_valid_stream_result_t;
+} utf8_scanner_result_t;
 
 typedef struct {
   utf8_dfa_state_t state;
   size_t carried;
   size_t probe_window;        // bulk look-ahead bound (bytes); tuning only
-} utf8_valid_stream_t;
+  bool probe_ascii;           // ASCII fast path for the bulk probe; tuning only
+} utf8_scanner_t;
 
-void   utf8_valid_stream_init(utf8_valid_stream_t *s);
-void   utf8_valid_stream_init_window(utf8_valid_stream_t *s, size_t window);
-void   utf8_valid_stream_set_window(utf8_valid_stream_t *s, size_t window);
-utf8_valid_stream_result_t utf8_valid_stream_check(utf8_valid_stream_t *s,
-                                                   const char *src, 
-                                                   size_t len,
-                                                   bool eof);
+void   utf8_scanner_init(utf8_scanner_t *s);
+void   utf8_scanner_set_window(utf8_scanner_t *s, size_t window);
+void   utf8_scanner_set_ascii(utf8_scanner_t *s, bool ascii);
+utf8_scanner_result_t utf8_scanner_feed(utf8_scanner_t *s,
+                                        const char *src,
+                                        size_t len);
+utf8_scanner_result_t utf8_scanner_finish(utf8_scanner_t *s);
 ```
 
-**`utf8_valid_stream_init`** initialises a stream validator. Call this before
-the first `utf8_valid_stream_check`. The probe window is set to the default
-(`UTF8_VALID_STREAM_PROBE_WINDOW_SIZE`, 256).
+**`utf8_scanner_init`** initialises a scanner. Call this before the first
+`utf8_scanner_feed`. The probe window is set to the default
+(`UTF8_SCANNER_PROBE_WINDOW_SIZE`, 256).
 
-**`utf8_valid_stream_set_window`** sets the probe window on an already
-initialised validator. It may be called at any time, including between chunks.
+**`utf8_scanner_set_window`** sets the probe window on an already
+initialised scanner. It may be called at any time, including between chunks.
 A value below 64 disables probing (pure byte-by-byte validation).
 
-**`utf8_valid_stream_set_ascii`** enables or disables the ASCII fast path for
+**`utf8_scanner_set_ascii`** enables or disables the ASCII fast path for
 the bulk probe (default off). It may be called at any time, including between
 chunks.
 
-**`utf8_valid_stream_check`** validates `src[0..len)` as the next chunk of a
-UTF-8 byte stream. `eof` should be `true` only for the final chunk. The DFA
-state is carried in `utf8_valid_stream_t` across calls.
+**`utf8_scanner_feed`** validates `src[0..len)` as the next chunk of a
+UTF-8 byte stream. The DFA state is carried in `utf8_scanner_t` across calls.
 
 If the chunk is well-formed and ends on a sequence boundary, status is `OK`.
-If the chunk ends in the middle of a sequence and `eof` is `false`, status is
-`PARTIAL`; `pending` is the number of trailing bytes in that incomplete
-sequence.
+If the chunk ends in the middle of a sequence, status is `PARTIAL`; `pending`
+is the number of trailing bytes in that incomplete sequence.
 
-If validation stops at an ill-formed sequence, status is `ILLFORMED`. If
-`eof` is `true` and the chunk ends in the middle of a sequence, status is
-`TRUNCATED`.
+If validation stops at an ill-formed sequence, status is `ILLFORMED`.
+`pending` is 0, `advance` is the number of bytes in the current chunk that
+belong to the subpart, and `carried` is the number of bytes from previous
+chunks that belong to the same subpart. Resume validation at
+`src[consumed + advance]`.
 
-On `ILLFORMED` or `TRUNCATED`, the stream state resets to `ACCEPT` 
+**`utf8_scanner_finish`** signals the end of the stream. Call it after the
+final chunk has been passed to `utf8_scanner_feed`. If the stream ended on a
+sequence boundary, status is `OK`. If it ended in the middle of a sequence,
+status is `TRUNCATED` and `carried` is the number of trailing bytes in that
+incomplete sequence. `consumed`, `pending` and `advance` are always 0.
+
+On `ILLFORMED` or `TRUNCATED`, the scanner state resets to `ACCEPT`
 automatically so the caller can continue without reinitialising.
-
-On `ILLFORMED` or `TRUNCATED`, `pending` is 0. `advance` is the number of
-bytes in the current chunk that belong to the subpart, and `carried` is the
-number of bytes from previous chunks that belong to the same subpart. Resume
-validation at `src[consumed + advance]`.
 
 If the current chunk starts at absolute offset `stream_offset`, then
 `stream_offset + consumed - carried` is the error position,
 `carried + advance` is the subpart length, and
-`stream_offset + consumed + advance` is the resume position.
+`stream_offset + consumed + advance` is the resume position. The same holds
+for `utf8_scanner_finish`, with `stream_offset` at the end of the stream.
 
 ```c
-utf8_valid_stream_t s;
-utf8_valid_stream_init(&s);
+utf8_scanner_t s;
+utf8_scanner_init(&s);
 
 size_t stream_offset = 0;  // absolute offset of current chunk start
 bool valid = true;
 
 while (valid && (len = read_chunk(buf, sizeof buf)) > 0) {
-  bool eof = len < sizeof buf;
-  utf8_valid_stream_result_t r = utf8_valid_stream_check(&s, buf, len, eof);
+  utf8_scanner_result_t r = utf8_scanner_feed(&s, buf, len);
 
   switch (r.status) {
-  case UTF8_VALID_STREAM_OK:
-  case UTF8_VALID_STREAM_PARTIAL:
+  case UTF8_SCANNER_OK:
+  case UTF8_SCANNER_PARTIAL:
     stream_offset += len;
     break;
-  case UTF8_VALID_STREAM_ILLFORMED:
-  case UTF8_VALID_STREAM_TRUNCATED: {
+  case UTF8_SCANNER_ILLFORMED: {
     size_t error_pos   = stream_offset + r.consumed - r.carried;
     size_t subpart_len = r.carried + r.advance;
     size_t resume_pos  = stream_offset + r.consumed + r.advance;
@@ -348,13 +349,27 @@ while (valid && (len = read_chunk(buf, sizeof buf)) > 0) {
     valid = false;
     break;
   }
+  case UTF8_SCANNER_TRUNCATED:  // utf8_scanner_finish only
+    break;
+  }
+}
+
+if (valid) {
+  utf8_scanner_result_t r = utf8_scanner_finish(&s);
+
+  if (r.status == UTF8_SCANNER_TRUNCATED) {
+    size_t error_pos   = stream_offset - r.carried;
+    size_t subpart_len = r.carried;
+
+    handle_error(error_pos, subpart_len);
+    valid = false;
   }
 }
 ```
 
 #### Probe window
 
-After each sequence boundary, the validator hands the following bytes to a
+After each sequence boundary, the scanner hands the following bytes to a
 bulk DFA path instead of stepping one byte at a time. The **probe window**
 caps that run at `min(probe_window, remaining - 1)` bytes, trimmed to the last
 sequence boundary within it.
@@ -366,7 +381,7 @@ mostly-valid input (disk reads); a smaller one suits small piecemeal chunks
 (sockets). A value below 64 disables the bulk path entirely.
 
 By default the bulk path uses a dual-stream DFA pass.
-`utf8_valid_stream_set_ascii(s, true)` switches it to an ASCII-skipping pass
+`utf8_scanner_set_ascii(s, true)` switches it to an ASCII-skipping pass
 that jumps over all-ASCII 16-byte blocks and steps the rest single-stream.
 This is faster on ASCII-leaning streams and slower on multibyte-heavy ones.
 
@@ -374,14 +389,14 @@ On error the bulk path only signals *that* a run is ill-formed; the exact
 position is found by re-stepping that run, so the window never affects
 reported errors.
 
-Set it per stream with `utf8_valid_stream_set_window`. The compile-time
-default is controlled by `UTF8_VALID_STREAM_PROBE_WINDOW_SIZE` (default 256);
+Set it per stream with `utf8_scanner_set_window`. The compile-time
+default is controlled by `UTF8_SCANNER_PROBE_WINDOW_SIZE` (default 256);
 setting it below 64 disables probing by default:
 
 ```c
 // raise the default window for all streams in this translation unit
-#define UTF8_VALID_STREAM_PROBE_WINDOW_SIZE 4096
-#include "utf8_valid_stream.h"
+#define UTF8_SCANNER_PROBE_WINDOW_SIZE 4096
+#include "utf8_scanner.h"
 ```
 
 ---
