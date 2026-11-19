@@ -51,6 +51,11 @@ TESTS = \
 	$(BUILD_DIR)/transcode_utf16_unsafe \
 	$(BUILD_DIR)/transcode_utf32 \
 	$(BUILD_DIR)/transcode_utf32_unsafe \
+	$(BUILD_DIR)/transcode_utf16_endian \
+	$(BUILD_DIR)/transcode_utf16_endian_unsafe \
+	$(BUILD_DIR)/transcode_utf32_endian \
+	$(BUILD_DIR)/transcode_utf32_endian_unsafe \
+	$(BUILD_DIR)/transcode_endian \
 	$(BUILD_DIR)/dfa_run_dual32 \
 	$(BUILD_DIR)/dfa_run_dual64 \
 	$(BUILD_DIR)/dfa_run_triple32 \
@@ -174,6 +179,21 @@ $(BUILD_DIR)/transcode_utf32: $(TEST_DIR)/transcode_utf32.c utf8_dfa64.h utf8_tr
 $(BUILD_DIR)/transcode_utf32_unsafe: $(TEST_DIR)/transcode_utf32_unsafe.c utf8_dfa64.h utf8_transcode.h utf8_transcode_unsafe.h utf8_transcode_common.h $(TEST_HARNESS) | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf32_unsafe.c
 
+$(BUILD_DIR)/transcode_utf16_endian: $(TEST_DIR)/transcode_utf16_endian.c utf8_dfa64.h utf8_transcode.h utf8_transcode_endian.h utf8_transcode_common.h $(TEST_HARNESS) | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf16_endian.c
+
+$(BUILD_DIR)/transcode_utf16_endian_unsafe: $(TEST_DIR)/transcode_utf16_endian_unsafe.c utf8_dfa64.h utf8_transcode_endian.h utf8_transcode_endian_unsafe.h utf8_transcode_common.h $(TEST_HARNESS) | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf16_endian_unsafe.c
+
+$(BUILD_DIR)/transcode_utf32_endian: $(TEST_DIR)/transcode_utf32_endian.c utf8_dfa64.h utf8_transcode.h utf8_transcode_endian.h utf8_transcode_common.h $(TEST_HARNESS) | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf32_endian.c
+
+$(BUILD_DIR)/transcode_utf32_endian_unsafe: $(TEST_DIR)/transcode_utf32_endian_unsafe.c utf8_dfa64.h utf8_transcode_endian.h utf8_transcode_endian_unsafe.h utf8_transcode_common.h $(TEST_HARNESS) | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_utf32_endian_unsafe.c
+
+$(BUILD_DIR)/transcode_endian: $(TEST_DIR)/transcode_endian.c utf8_dfa64.h utf8_transcode.h utf8_transcode_unsafe.h utf8_transcode_endian.h utf8_transcode_endian_unsafe.h utf8_transcode_common.h $(TEST_HARNESS) | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/transcode_endian.c
+
 $(BUILD_DIR)/dfa_run_dual32: $(TEST_DIR)/dfa_run_dual.c utf8_dfa32.h $(TEST_HARNESS) | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/dfa_run_dual.c
 
@@ -230,6 +250,11 @@ test: $(TESTS)
 	@$(BUILD_DIR)/transcode_utf16_unsafe
 	@$(BUILD_DIR)/transcode_utf32
 	@$(BUILD_DIR)/transcode_utf32_unsafe
+	@$(BUILD_DIR)/transcode_utf16_endian
+	@$(BUILD_DIR)/transcode_utf16_endian_unsafe
+	@$(BUILD_DIR)/transcode_utf32_endian
+	@$(BUILD_DIR)/transcode_utf32_endian_unsafe
+	@$(BUILD_DIR)/transcode_endian
 	@$(BUILD_DIR)/dfa_run_dual32
 	@$(BUILD_DIR)/dfa_run_dual64
 	@$(BUILD_DIR)/dfa_run_triple32

@@ -23,6 +23,7 @@
 #ifndef UTF8_TRANSCODE_COMMON_H
 #define UTF8_TRANSCODE_COMMON_H
 #include <stddef.h>
+#include <stdint.h>
 
 /*
  * utf8_transcode_status_t -- outcome of a transcoding operation.
@@ -45,7 +46,8 @@ typedef enum {
  *   status:    outcome of the operation (see utf8_transcode_status_t).
  *   consumed:  bytes read from src.
  *   decoded:   codepoints decoded from src.
- *   written:   code units written to dst.
+ *   written:   code units written to dst; bytes for the explicit byte
+ *              order variants (utf8_transcode_endian.h).
  *   advance:   bytes to skip past the ill-formed sequence on ILLFORMED or
  *              TRUNCATED, else 0. Resume at src[consumed+advance].
  */
@@ -56,5 +58,34 @@ typedef struct {
   size_t written;
   size_t advance;
 } utf8_transcode_result_t;
+
+/*
+ * Byte order stores used by utf8_transcode_endian.h and
+ * utf8_transcode_endian_unsafe.h. Written as shifts, so they are correct on
+ * any host and need no alignment.
+ */
+static inline void utf8_transcode_store_be16(uint8_t *p, uint16_t v) {
+  p[0] = (uint8_t)(v >> 8);
+  p[1] = (uint8_t)(v);
+}
+
+static inline void utf8_transcode_store_le16(uint8_t *p, uint16_t v) {
+  p[0] = (uint8_t)(v);
+  p[1] = (uint8_t)(v >> 8);
+}
+
+static inline void utf8_transcode_store_be32(uint8_t *p, uint32_t v) {
+  p[0] = (uint8_t)(v >> 24);
+  p[1] = (uint8_t)(v >> 16);
+  p[2] = (uint8_t)(v >> 8);
+  p[3] = (uint8_t)(v);
+}
+
+static inline void utf8_transcode_store_le32(uint8_t *p, uint32_t v) {
+  p[0] = (uint8_t)(v);
+  p[1] = (uint8_t)(v >> 8);
+  p[2] = (uint8_t)(v >> 16);
+  p[3] = (uint8_t)(v >> 24);
+}
 
 #endif /* UTF8_TRANSCODE_COMMON_H */

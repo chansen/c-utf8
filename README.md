@@ -148,7 +148,7 @@ Use `utf8_dfa32.h` for validation-only work: `utf8_valid.h`,
 `utf8_advance_forward.h`.
 
 Use `utf8_dfa64.h` when codepoint decoding or transcoding is needed:
-`utf8_decode_next.h`, `utf8_transcode.h`.
+`utf8_decode_next.h`, `utf8_transcode.h`, `utf8_transcode_endian.h`.
 
 #### Reverse backends
 
@@ -176,6 +176,7 @@ backend.
 | Skip forward N codepoints            | `utf8_dfa{32,64}.h`  | —                     |
 | Decode forward                       | `utf8_dfa64.h`       | —                     |
 | Transcode to UTF-16/32               | `utf8_dfa64.h`       | —                     |
+| Transcode to UTF-16/32 LE/BE         | `utf8_dfa64.h`       | —                     |
 | Skip backward N codepoints           | —                    | `utf8_rdfa{32,64}.h`  |
 | Decode backward                      | —                    | `utf8_rdfa64.h`       |
 
@@ -837,6 +838,60 @@ For UTF-32, `result.written` always equals `result.decoded` since each
 codepoint maps to exactly one code unit. For UTF-16, `result.written` may
 exceed `result.decoded` due to surrogate pairs for codepoints above U+FFFF.
 
+---
+
+### Transcoding to a byte order — `utf8_transcode_endian.h`
+
+Requires `utf8_dfa64.h`.
+
+```c
+utf8_transcode_result_t utf8_transcode_utf16le(const char *src, size_t src_len,
+                                               uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf16be(const char *src, size_t src_len,
+                                               uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf16le_replace(const char *src, size_t src_len,
+                                                       uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf16be_replace(const char *src, size_t src_len,
+                                                       uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf32le(const char *src, size_t src_len,
+                                               uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf32be(const char *src, size_t src_len,
+                                               uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf32le_replace(const char *src, size_t src_len,
+                                                       uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf32be_replace(const char *src, size_t src_len,
+                                                       uint8_t *dst, size_t dst_len);
+```
+
+`utf8_transcode.h` writes native `uint16_t` / `uint32_t` code units, which
+have the byte order of the host. These functions write UTF-16LE, UTF-16BE,
+UTF-32LE or UTF-32BE as bytes, in the named byte order on any host, as
+required by file formats and network protocols.
+
+`dst` is a byte buffer and needs no alignment. `dst_len` and
+`result.written` are **byte counts**, not code unit counts. Only whole code
+units are written: trailing bytes of `dst` that cannot hold one are left
+untouched. No byte order mark is written.
+
+Everything else is as in `utf8_transcode.h`: the same result struct, the
+same meaning of `status`, `consumed`, `decoded` and `advance`, and the same
+strict and `_replace` behaviour.
+
+```c
+// Write a stream as UTF-16LE with a byte order mark, replacing ill-formed
+// sequences with U+FFFD
+uint8_t dst[512];
+utf8_transcode_result_t r;
+
+write_bytes("\xFF\xFE", 2);
+do {
+  r = utf8_transcode_utf16le_replace(src, src_len, dst, sizeof dst);
+  write_bytes(dst, r.written);
+  src     += r.consumed;
+  src_len -= r.consumed;
+} while (r.status == UTF8_TRANSCODE_EXHAUSTED);
+```
+
 ## Unsafe variants
 
 The following headers provide validation-free implementations for use on
@@ -949,6 +1004,29 @@ Both functions process 8 bytes at a time when all 8 are ASCII (widening
 without decoding) and batch consecutive sequences of the same length class to
 avoid re-entering the lead-byte classifier. For UTF-16, codepoints above
 U+FFFF are encoded as surrogate pairs.
+
+---
+
+### Unsafe transcoding to a byte order — `utf8_transcode_endian_unsafe.h`
+
+No DFA backend required.
+
+```c
+utf8_transcode_result_t utf8_transcode_utf16le_unsafe(const char *src, size_t src_len,
+                                                      uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf16be_unsafe(const char *src, size_t src_len,
+                                                      uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf32le_unsafe(const char *src, size_t src_len,
+                                                      uint8_t *dst, size_t dst_len);
+utf8_transcode_result_t utf8_transcode_utf32be_unsafe(const char *src, size_t src_len,
+                                                      uint8_t *dst, size_t dst_len);
+```
+
+The unsafe counterparts of `utf8_transcode_endian.h`: they write UTF-16LE,
+UTF-16BE, UTF-32LE or UTF-32BE as bytes, with `dst_len` and
+`result.written` as byte counts and no byte order mark. Status is always
+`OK` or `EXHAUSTED`; `advance` is always 0. They use the same ASCII fast
+path and same-length-class batching as `utf8_transcode_unsafe.h`.
 
 ---
 
