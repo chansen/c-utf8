@@ -144,7 +144,8 @@ state      = (row >> state) & 63;
 | `utf8_dfa64.h` | `uint64_t` | 2 KB       | Yes      |
 
 Use `utf8_dfa32.h` for validation-only work: `utf8_valid.h`,
-`utf8_scanner.h`, `utf8_distance.h`, `utf8_advance_forward.h`.
+`utf8_scanner.h`, `utf8_validator.h`, `utf8_distance.h`,
+`utf8_advance_forward.h`.
 
 Use `utf8_dfa64.h` when codepoint decoding or transcoding is needed:
 `utf8_decode_next.h`, `utf8_transcode.h`.
@@ -171,6 +172,7 @@ backend.
 | Validate                             | `utf8_dfa{32,64}.h`  | —                     |
 | Count codepoints                     | `utf8_dfa{32,64}.h`  | —                     |
 | Streaming validation                 | `utf8_dfa{32,64}.h`  | —                     |
+| Buffered streaming validation        | `utf8_dfa{32,64}.h`  | —                     |
 | Skip forward N codepoints            | `utf8_dfa{32,64}.h`  | —                     |
 | Decode forward                       | `utf8_dfa64.h`       | —                     |
 | Transcode to UTF-16/32               | `utf8_dfa64.h`       | —                     |
@@ -397,6 +399,165 @@ setting it below 64 disables probing by default:
 // raise the default window for all streams in this translation unit
 #define UTF8_SCANNER_PROBE_WINDOW_SIZE 4096
 #include "utf8_scanner.h"
+```
+
+---
+
+### Buffered streaming validation — `utf8_validator.h`
+
+Requires `utf8_dfa32.h` or `utf8_dfa64.h`. Includes `utf8_scanner.h`.
+
+```c
+typedef enum {
+  UTF8_VALIDATOR_OK,         // no errors, data ends on a sequence boundary
+  UTF8_VALIDATOR_PARTIAL,    // src fully consumed, incomplete sequence buffered
+  UTF8_VALIDATOR_ILLFORMED,  // stopped at an ill-formed subsequence
+  UTF8_VALIDATOR_TRUNCATED,  // stream ended mid-sequence (utf8_validator_finish only)
+} utf8_validator_status_t;
+
+typedef struct {
+  utf8_validator_status_t status;
+  const char *data;           // well-formed bytes, in src or in the validator's buffer
+  size_t size;                // length of data, may be 0
+  size_t consumed;            // bytes read from src
+  size_t pending;             // bytes of an incomplete trailing sequence held in the buffer, else 0
+  size_t advance;             // bytes to skip on ILLFORMED, else 0
+  size_t carried;             // bytes from previous chunks that belong to the same subpart
+} utf8_validator_result_t;
+
+typedef struct {
+  utf8_scanner_t scanner;
+  char buffer[4];             // sequence that spans chunks
+  size_t buffered;
+} utf8_validator_t;
+
+void   utf8_validator_init(utf8_validator_t *v);
+void   utf8_validator_set_window(utf8_validator_t *v, size_t window);
+void   utf8_validator_set_ascii(utf8_validator_t *v, bool ascii);
+utf8_validator_result_t utf8_validator_feed(utf8_validator_t *v,
+                                            const char *src,
+                                            size_t len);
+utf8_validator_result_t utf8_validator_finish(utf8_validator_t *v);
+```
+
+A `utf8_validator_t` wraps a `utf8_scanner_t` and adds a small buffer for
+sequences that span chunks. The scanner only reports positions, so a caller
+that forwards the validated bytes has to hold back an incomplete trailing
+sequence itself. The validator does that internally: every result describes
+one contiguous run of well-formed bytes, either in `src` or, for a sequence
+that spans chunks, in the validator's buffer. The caller never needs a
+previous chunk.
+
+**`utf8_validator_init`** initialises a validator. Call this before the first
+`utf8_validator_feed`. **`utf8_validator_set_window`** and
+**`utf8_validator_set_ascii`** configure the underlying scanner (see
+[Probe window](#probe-window)).
+
+**`utf8_validator_feed`** validates `src[0..len)` as the next chunk of a
+UTF-8 byte stream. `data[0..size)` is well-formed, ends on a sequence
+boundary, and stays valid until the next call on the validator.
+
+If no error is found, status is `OK`. Normally `data` is `src` and the whole
+chunk is consumed. When the validator holds an incomplete sequence from a
+previous chunk, the call reads only the bytes that complete it and returns
+the complete sequence from its buffer; `consumed` is then less than `len`
+unless the chunk ends there. Call again with the rest of the chunk.
+
+If the chunk ends in the middle of a sequence, status is `PARTIAL`. The whole
+chunk is consumed, `data` holds the bytes before the incomplete sequence, and
+`pending` is the number of bytes of that sequence held in the buffer.
+
+If validation stops at an ill-formed sequence, status is `ILLFORMED`. `data`
+holds the well-formed bytes before it, `advance` is the number of bytes in
+the current chunk that belong to the subpart, and `carried` is the number of
+bytes from previous chunks that belong to the same subpart. When `carried` is
+non-zero, `consumed + advance` may be 0.
+
+In all cases, continue at `src[consumed + advance]`.
+
+**`utf8_validator_finish`** signals the end of the stream. Call it after the
+final chunk has been passed to `utf8_validator_feed`. If the stream ended on
+a sequence boundary, status is `OK`. If it ended in the middle of a sequence,
+status is `TRUNCATED` and `carried` is the number of trailing bytes in that
+incomplete sequence. `size`, `consumed`, `pending` and `advance` are always 0.
+
+On `ILLFORMED` or `TRUNCATED`, the validator state resets automatically so
+the caller can continue without reinitialising. Error positions follow the
+scanner: if `src` is at absolute offset `stream_offset`, then
+`stream_offset + consumed - carried` is the error position and
+`carried + advance` is the subpart length.
+
+The bytes of the ill-formed subpart follow the well-formed data: they start
+at `data + size` and are `carried + advance` long, whether the subpart lies
+within the chunk or began in a previous one. Like `data`, they stay valid
+until the next call on the validator.
+
+```c
+utf8_validator_t v;
+utf8_validator_init(&v);
+
+// copy a stream, reporting each ill-formed subpart and replacing it
+// with U+FFFD
+while ((len = read_chunk(buf, sizeof buf)) > 0) {
+  const char *src = buf;
+
+  while (len > 0) {
+    utf8_validator_result_t r = utf8_validator_feed(&v, src, len);
+
+    write_bytes(r.data, r.size);
+    if (r.status == UTF8_VALIDATOR_ILLFORMED) {
+      report_illformed(r.data + r.size, r.carried + r.advance);
+      write_bytes("\xEF\xBF\xBD", 3);
+    }
+
+    src += r.consumed + r.advance;
+    len -= r.consumed + r.advance;
+  }
+}
+
+utf8_validator_result_t r = utf8_validator_finish(&v);
+if (r.status == UTF8_VALIDATOR_TRUNCATED) {
+  report_illformed(r.data, r.carried);
+  write_bytes("\xEF\xBF\xBD", 3);
+}
+```
+
+To only validate a stream, ignore `data`. Nothing is copied except an
+incomplete sequence at a chunk boundary, and every ill-formed subpart can
+still be reported with its bytes, also when it began in a previous chunk:
+
+```c
+utf8_validator_t v;
+utf8_validator_init(&v);
+
+size_t offset = 0;  // absolute offset of src
+bool valid = true;
+
+// validate a stream, reporting the position and bytes of each ill-formed
+// subpart
+while ((len = read_chunk(buf, sizeof buf)) > 0) {
+  const char *src = buf;
+
+  while (len > 0) {
+    utf8_validator_result_t r = utf8_validator_feed(&v, src, len);
+
+    if (r.status == UTF8_VALIDATOR_ILLFORMED) {
+      report_illformed(offset + r.consumed - r.carried,
+                       r.data + r.size, r.carried + r.advance);
+      valid = false;
+    }
+
+    src    += r.consumed + r.advance;
+    len    -= r.consumed + r.advance;
+    offset += r.consumed + r.advance;
+  }
+}
+
+utf8_validator_result_t r = utf8_validator_finish(&v);
+if (r.status == UTF8_VALIDATOR_TRUNCATED) {
+  report_illformed(offset - r.carried, r.data, r.carried);
+  valid = false;
+}
 ```
 
 ---

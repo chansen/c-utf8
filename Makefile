@@ -24,6 +24,8 @@ TESTS = \
 	$(BUILD_DIR)/valid64 \
 	$(BUILD_DIR)/scanner32 \
 	$(BUILD_DIR)/scanner64 \
+	$(BUILD_DIR)/validator32 \
+	$(BUILD_DIR)/validator64 \
 	$(BUILD_DIR)/valid_file32 \
 	$(BUILD_DIR)/valid_file64 \
 	$(BUILD_DIR)/advance_forward32 \
@@ -90,6 +92,12 @@ $(BUILD_DIR)/scanner32: $(TEST_DIR)/scanner.c utf8_dfa32.h utf8_scanner.h $(TEST
 
 $(BUILD_DIR)/scanner64: $(TEST_DIR)/scanner.c utf8_dfa64.h utf8_scanner.h $(TEST_HARNESS) | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/scanner.c
+
+$(BUILD_DIR)/validator32: $(TEST_DIR)/validator.c utf8_dfa32.h utf8_valid.h utf8_scanner.h utf8_validator.h $(TEST_HARNESS) | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/validator.c
+
+$(BUILD_DIR)/validator64: $(TEST_DIR)/validator.c utf8_dfa64.h utf8_valid.h utf8_scanner.h utf8_validator.h $(TEST_HARNESS) | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -DUTF8_DFA_64 -o $@ $(TEST_DIR)/validator.c
 
 $(BUILD_DIR)/valid_file32: $(TEST_DIR)/valid_file.c utf8_dfa32.h utf8_valid.h $(TEST_HARNESS) | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) -o $@ $(TEST_DIR)/valid_file.c
@@ -195,6 +203,8 @@ test: $(TESTS)
 	@$(BUILD_DIR)/valid64
 	@$(BUILD_DIR)/scanner32
 	@$(BUILD_DIR)/scanner64
+	@$(BUILD_DIR)/validator32
+	@$(BUILD_DIR)/validator64
 	@$(BUILD_DIR)/valid_file32 $(TEST_DATA)
 	@$(BUILD_DIR)/valid_file64 $(TEST_DATA)
 	@$(BUILD_DIR)/advance_forward32
