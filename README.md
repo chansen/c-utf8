@@ -254,6 +254,31 @@ with `src` advanced to the cursor position.
 
 Requires `utf8_dfa32.h` or `utf8_dfa64.h`.
 
+A `utf8_scanner_t` validates a UTF-8 byte stream that arrives in chunks, such
+as reads from a file or a socket, where a sequence may be split across two or
+more chunks. It answers the same questions as `utf8_check` and
+`utf8_maximal_subpart` do for a complete buffer: is the input well-formed,
+and if not, where does each ill-formed subpart start and how long is it.
+
+The scanner is the low-level, zero-copy primitive. Between calls it keeps
+only the DFA state and a byte count; it never copies or retains input, and it
+reports everything as offsets and lengths. A result can therefore refer to
+bytes of an earlier chunk (`carried`). The scanner counts those bytes but
+does not have them: a caller that needs the bytes themselves must still hold
+the earlier chunk, or use `utf8_validator.h`, which keeps them.
+
+|                         | `utf8_valid.h`     | `utf8_scanner.h`           | `utf8_validator.h`               |
+| :---                    | :---               | :---                       | :---                             |
+| Input                   | one buffer         | chunks                     | chunks                           |
+| State between calls     | none               | DFA state and a count      | scanner and a 4-byte buffer      |
+| Copies input            | no                 | no                         | only a sequence split by a chunk boundary |
+| Ill-formed subpart      | offset and length  | offset and length          | offset, length and bytes         |
+| Well-formed bytes       | prefix length      | prefix length per chunk    | pointer and length               |
+
+The life cycle is: initialise once, feed every chunk in stream order, then
+finish. A scanner can be reused for another stream after
+`utf8_scanner_finish`.
+
 ```c
 typedef enum {
   UTF8_SCANNER_OK,         // src fully consumed, no errors
@@ -299,73 +324,103 @@ the bulk probe (default off). It may be called at any time, including between
 chunks.
 
 **`utf8_scanner_feed`** validates `src[0..len)` as the next chunk of a
-UTF-8 byte stream. The DFA state is carried in `utf8_scanner_t` across calls.
+UTF-8 byte stream, continuing from the state left by the previous call. The
+result depends on how the chunk ends:
 
-If the chunk is well-formed and ends on a sequence boundary, status is `OK`.
-If the chunk ends in the middle of a sequence, status is `PARTIAL`; `pending`
-is the number of trailing bytes in that incomplete sequence.
+| Status      | Meaning                                              | `consumed`                           | `pending`                                   | `advance`                     | `carried`                          |
+| :---        | :---                                                 | :---                                 | :---                                        | :---                          | :---                               |
+| `OK`        | Well-formed, ends on a sequence boundary             | `len`                                | 0                                           | 0                             | 0                                  |
+| `PARTIAL`   | Well-formed so far, ends in the middle of a sequence | bytes before the incomplete sequence | bytes of the incomplete sequence so far     | 0                             | 0                                  |
+| `ILLFORMED` | Stopped at an ill-formed sequence                    | well-formed bytes before the subpart | 0                                           | subpart bytes in this chunk   | subpart bytes in earlier chunks    |
 
-If validation stops at an ill-formed sequence, status is `ILLFORMED`.
-`pending` is 0, `advance` is the number of bytes in the current chunk that
-belong to the subpart, and `carried` is the number of bytes from previous
-chunks that belong to the same subpart. Resume validation at
-`src[consumed + advance]`.
+On `OK` and `PARTIAL` the scanner has taken the whole chunk; feed the next
+one. On `PARTIAL` this includes the incomplete trailing sequence: it is held
+in the scanner's state and must not be fed again, even though `consumed`
+only counts up to the last sequence boundary. `pending` counts every byte of
+that sequence seen so far, including bytes from earlier chunks, so it can
+exceed `len - consumed`.
+
+On `ILLFORMED` the scanner stops after the
+[maximal subpart](#maximal-subpart) and resets its state to `ACCEPT`. The
+rest of the chunk has not been examined: continue by feeding
+`src + consumed + advance`. When the subpart began in an earlier chunk
+(`carried` is non-zero), `consumed` is 0 and `advance` may be 0 as well. In
+that case the first byte of the chunk exposed the error without being part
+of the subpart, and it is validated again by the next call.
 
 **`utf8_scanner_finish`** signals the end of the stream. Call it after the
 final chunk has been passed to `utf8_scanner_feed`. If the stream ended on a
 sequence boundary, status is `OK`. If it ended in the middle of a sequence,
 status is `TRUNCATED` and `carried` is the number of trailing bytes in that
-incomplete sequence. `consumed`, `pending` and `advance` are always 0.
+incomplete sequence. `consumed`, `pending` and `advance` are always 0. The
+scanner state resets to `ACCEPT` either way.
 
-On `ILLFORMED` or `TRUNCATED`, the scanner state resets to `ACCEPT`
-automatically so the caller can continue without reinitialising.
+For example, the stream `41 F0 9F 98 42` holds a 4-byte sequence that is cut
+short by `42`. Fed as two chunks:
 
-If the current chunk starts at absolute offset `stream_offset`, then
-`stream_offset + consumed - carried` is the error position,
-`carried + advance` is the subpart length, and
-`stream_offset + consumed + advance` is the resume position. The same holds
-for `utf8_scanner_finish`, with `stream_offset` at the end of the stream.
+| Call               | Status      | `consumed` | `pending` | `advance` | `carried` |                                               |
+| :---               | :---        | :---       | :---      | :---      | :---      | :---                                          |
+| feed `41 F0 9F`    | `PARTIAL`   | 1          | 2         | 0         | 0         | `41` is complete, `F0 9F` is held             |
+| feed `98 42`       | `ILLFORMED` | 0          | 0         | 1         | 2         | subpart is `F0 9F 98`; continue at `42`       |
+| feed `42`          | `OK`        | 1          | 0         | 0         | 0         |                                               |
+| finish             | `OK`        | 0          | 0         | 0         | 0         |                                               |
+
+Had the stream ended after the first chunk, `utf8_scanner_finish` would have
+returned `TRUNCATED` with `carried` 2.
+
+#### Error positions
+
+If `src` is at absolute stream offset `stream_offset`, then on `ILLFORMED`:
+
+- `stream_offset + consumed - carried` is the position of the subpart,
+- `carried + advance` is its length,
+- `stream_offset + consumed + advance` is where validation continues.
+
+The same holds for `TRUNCATED` from `utf8_scanner_finish`, with
+`stream_offset` at the end of the stream: the subpart is the last `carried`
+bytes.
+
+The following validates a stream and reports every ill-formed subpart. To
+reject the stream at the first error instead, stop at the first `ILLFORMED`.
 
 ```c
 utf8_scanner_t s;
 utf8_scanner_init(&s);
 
-size_t stream_offset = 0;  // absolute offset of current chunk start
+size_t stream_offset = 0;  // absolute offset of src
 bool valid = true;
 
-while (valid && (len = read_chunk(buf, sizeof buf)) > 0) {
-  utf8_scanner_result_t r = utf8_scanner_feed(&s, buf, len);
+while ((len = read_chunk(buf, sizeof buf)) > 0) {
+  const char *src = buf;
 
-  switch (r.status) {
-  case UTF8_SCANNER_OK:
-  case UTF8_SCANNER_PARTIAL:
-    stream_offset += len;
-    break;
-  case UTF8_SCANNER_ILLFORMED: {
+  for (;;) {
+    utf8_scanner_result_t r = utf8_scanner_feed(&s, src, len);
+
+    if (r.status != UTF8_SCANNER_ILLFORMED) {
+      stream_offset += len;  // OK or PARTIAL: the whole chunk was taken
+      break;
+    }
+
     size_t error_pos   = stream_offset + r.consumed - r.carried;
     size_t subpart_len = r.carried + r.advance;
-    size_t resume_pos  = stream_offset + r.consumed + r.advance;
 
     handle_error(error_pos, subpart_len);
-    stream_offset = resume_pos;
     valid = false;
-    break;
-  }
-  case UTF8_SCANNER_TRUNCATED:  // utf8_scanner_finish only
-    break;
+
+    // continue with the rest of the chunk
+    src           += r.consumed + r.advance;
+    len           -= r.consumed + r.advance;
+    stream_offset += r.consumed + r.advance;
   }
 }
 
-if (valid) {
-  utf8_scanner_result_t r = utf8_scanner_finish(&s);
+utf8_scanner_result_t r = utf8_scanner_finish(&s);
+if (r.status == UTF8_SCANNER_TRUNCATED) {
+  size_t error_pos   = stream_offset - r.carried;
+  size_t subpart_len = r.carried;
 
-  if (r.status == UTF8_SCANNER_TRUNCATED) {
-    size_t error_pos   = stream_offset - r.carried;
-    size_t subpart_len = r.carried;
-
-    handle_error(error_pos, subpart_len);
-    valid = false;
-  }
+  handle_error(error_pos, subpart_len);
+  valid = false;
 }
 ```
 
