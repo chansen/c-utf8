@@ -61,7 +61,8 @@ typedef enum {
  *
  *   status:    outcome of the operation (see utf8_scanner_status_t).
  *   consumed:  bytes read from src.
- *   pending:   bytes of an incomplete trailing sequence on PARTIAL, else 0.
+ *   pending:   total bytes of the incomplete trailing sequence on PARTIAL,
+ *              including bytes from previous chunks, else 0.
  *   advance:   bytes to skip on ILLFORMED, else 0.
  *              Resume at src[consumed + advance].
  *   carried:   bytes from a previous chunk that belong to the same subpart.
@@ -147,7 +148,8 @@ utf8_scanner_probe_run(const uint8_t *bytes,
  *     UTF8_SCANNER_ILLFORMED  stopped at an ill-formed sequence.
  *
  *   consumed:  bytes read from src.
- *   pending:   bytes of an incomplete trailing sequence on PARTIAL, else 0.
+ *   pending:   total bytes of the incomplete trailing sequence on PARTIAL,
+ *              including bytes from previous chunks, else 0.
  *   advance:   bytes to skip on ILLFORMED, else 0.
  *              Resume at src[consumed + advance].
  *   carried:   bytes from a previous chunk that belong to the same subpart.
@@ -155,7 +157,7 @@ utf8_scanner_probe_run(const uint8_t *bytes,
  * On ILLFORMED:
  *
  *   subpart length = carried + advance
- *   subpart start  = src + consumed - carried   (chunk-relative)
+ *   subpart start  = carried bytes before src[consumed]
  *
  * and the scanner state is reset to UTF8_DFA_ACCEPT.
  */
@@ -249,7 +251,7 @@ utf8_scanner_feed(utf8_scanner_t* s,
  * On TRUNCATED the subpart is the last carried bytes of the stream:
  *
  *   subpart length = carried
- *   subpart start  = end of stream - carried
+ *   subpart start  = carried bytes before the end of the stream
  *
  * and the scanner state is reset to UTF8_DFA_ACCEPT.
  */

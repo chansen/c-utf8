@@ -43,7 +43,8 @@ extern "C" {
  *
  *   UTF8_VALIDATOR_OK         no errors, data ends on a sequence boundary.
  *   UTF8_VALIDATOR_PARTIAL    src fully consumed, ends in the middle of a
- *                             sequence; the incomplete sequence is buffered.
+ *                             sequence; data holds the bytes before the
+ *                             incomplete sequence, which is buffered.
  *   UTF8_VALIDATOR_ILLFORMED  stopped at an ill-formed sequence.
  *   UTF8_VALIDATOR_TRUNCATED  stream ended in the middle of a sequence
  *                             (utf8_validator_finish only).
@@ -61,11 +62,13 @@ typedef enum {
  *   status:    outcome of the operation (see utf8_validator_status_t).
  *   data:      well-formed bytes ending on a sequence boundary. Points into
  *              src, or into the validator's buffer for a sequence that spans
- *              chunks. Valid until the next call on the validator.
+ *              chunks: always read them through data, never through src.
+ *              Valid until the next call on the validator.
  *   size:      length of data, may be 0.
  *   consumed:  bytes read from src.
- *   pending:   bytes of an incomplete trailing sequence held in the
- *              validator's buffer on PARTIAL, else 0.
+ *   pending:   total bytes of the incomplete trailing sequence held in the
+ *              validator's buffer on PARTIAL, including bytes from previous
+ *              chunks, else 0.
  *   advance:   bytes to skip on ILLFORMED, else 0.
  *              Resume at src[consumed + advance].
  *   carried:   bytes from previous chunks that belong to the same subpart
@@ -134,16 +137,19 @@ utf8_validator_init(utf8_validator_t *v) {
  *   status:
  *     UTF8_VALIDATOR_OK         no errors, data ends on a sequence boundary.
  *     UTF8_VALIDATOR_PARTIAL    src fully consumed, ends in the middle of a
- *                               sequence; the incomplete sequence is buffered.
+ *                               sequence; data holds the bytes before the
+ *                               incomplete sequence, which is buffered.
  *     UTF8_VALIDATOR_ILLFORMED  stopped at an ill-formed sequence.
  *
  *   data:      well-formed bytes ending on a sequence boundary. Points into
  *              src, or into the validator's buffer for a sequence that spans
- *              chunks. Valid until the next call on the validator.
+ *              chunks: always read them through data, never through src.
+ *              Valid until the next call on the validator.
  *   size:      length of data, may be 0.
  *   consumed:  bytes read from src.
- *   pending:   bytes of an incomplete trailing sequence held in the
- *              validator's buffer on PARTIAL, else 0.
+ *   pending:   total bytes of the incomplete trailing sequence held in the
+ *              validator's buffer on PARTIAL, including bytes from previous
+ *              chunks, else 0.
  *   advance:   bytes to skip on ILLFORMED, else 0.
  *              Resume at src[consumed + advance].
  *   carried:   bytes from previous chunks that belong to the same subpart
@@ -152,7 +158,7 @@ utf8_validator_init(utf8_validator_t *v) {
  * On ILLFORMED:
  *
  *   subpart length = carried + advance
- *   subpart start  = src + consumed - carried   (chunk-relative)
+ *   subpart start  = carried bytes before src[consumed]
  *   subpart bytes  = data + size
  *
  * and the validator state is reset. When carried is non-zero the subpart
@@ -276,7 +282,7 @@ utf8_validator_feed(utf8_validator_t* v,
  * On TRUNCATED the subpart is the last carried bytes of the stream:
  *
  *   subpart length = carried
- *   subpart start  = end of stream - carried
+ *   subpart start  = carried bytes before the end of the stream
  *   subpart bytes  = data
  *
  * and the validator state is reset.
