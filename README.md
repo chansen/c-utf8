@@ -1,6 +1,6 @@
 # c-utf8
 
-A header-only UTF-8 library in C implementing validation, decoding, and 
+A header-only UTF-8 library in C implementing validation, decoding, and
 transcoding conforming to the Unicode and ISO/IEC 10646 specifications.
 
 ## Usage
@@ -28,10 +28,11 @@ size_t n = utf8_maximal_subpart(src, len);
 
 ## DFA backends
 
-All routines in this library are driven by a Deterministic Finite Automaton
-(DFA) that consumes one byte at a time and transitions between a small set of
-states. Four backend headers are provided; you choose one or two based on
-what the consumer headers you include actually need.
+The safe routines in this library are driven by a Deterministic Finite
+Automaton (DFA) that consumes one byte at a time and transitions between a
+small set of states. Four backend headers are provided; you choose one or two
+based on what the consumer headers you include actually need. The
+[unsafe variants](#unsafe-variants) use no DFA and need no backend.
 
 ### Forward DFA
 
@@ -95,7 +96,7 @@ by [Per Vognsen](https://gist.github.com/pervognsen/218ea17743e1442e59bb60d29b1a
 Each byte maps to a row in a 256-entry table. The row is a packed integer
 where each state's transition target is stored at a fixed bit offset. The
 current state value is used directly as the shift amount to extract the next
-state, avoiding a second lookup. The inner loop is a table load, a shift, and 
+state, avoiding a second lookup. The inner loop is a table load, a shift, and
 a mask:
 
 ```c
@@ -183,7 +184,7 @@ backend.
 ## API
 
 The library is split into independent header files. The safe API headers each
-require exactly one DFA backend to be included first. The [unsafe variants](#unsafe-variants) 
+require exactly one DFA backend to be included first. The [unsafe variants](#unsafe-variants)
 require no DFA backend and operate on pre-validated input only.
 
 ---
@@ -244,9 +245,9 @@ the other bounded variants, they are slightly slower on well-formed input.
 Behaviour is identical to `utf8_valid` and `utf8_check`.
 
 **`utf8_maximal_subpart`** returns the length of the maximal subpart of the
-ill-formed sequence starting at `src[0..len)`, as defined by Unicode 
-(see [Error handling and U+FFFD replacement](#error-handling-and-ufffd-replacement)). 
-The return value is always >= 1. Call this after `utf8_check` reports failure, 
+ill-formed sequence starting at `src[0..len)`, as defined by Unicode
+(see [Error handling and U+FFFD replacement](#error-handling-and-ufffd-replacement)).
+The return value is always >= 1. Call this after `utf8_check` reports failure,
 with `src` advanced to the cursor position.
 
 ---
@@ -342,9 +343,9 @@ that sequence seen so far, including bytes from earlier chunks, so it can
 exceed `len - consumed`.
 
 On `ILLFORMED` the scanner stops after the
-[maximal subpart](#maximal-subpart) and resets its state to `ACCEPT`. The
-rest of the chunk has not been examined: continue by feeding
-`src + consumed + advance`. When the subpart began in an earlier chunk
+[maximal subpart](#error-handling-and-ufffd-replacement) and resets its
+state to `ACCEPT`. The rest of the chunk has not been examined: continue by
+feeding `src + consumed + advance`. When the subpart began in an earlier chunk
 (`carried` is non-zero), `consumed` is 0 and `advance` may be 0 as well. In
 that case the first byte of the chunk exposed the error without being part
 of the subpart, and it is validated again by the next call.
@@ -670,9 +671,9 @@ Behaviour is identical to `utf8_advance_forward`.
 Requires `utf8_rdfa32.h` or `utf8_rdfa64.h`.
 
 ```c
-size_t utf8_advance_backward(const char *src, 
+size_t utf8_advance_backward(const char *src,
                              size_t len,
-                             size_t distance, 
+                             size_t distance,
                              size_t *advanced);
 size_t utf8_advance_backward_ascii(const char *src,
                                    size_t len,
@@ -766,18 +767,18 @@ Requires `utf8_dfa64.h`.
 
 ```c
 typedef enum {
-    UTF8_TRANSCODE_OK,         // src fully consumed, no errors
-    UTF8_TRANSCODE_EXHAUSTED,  // dst full before src was consumed
-    UTF8_TRANSCODE_ILLFORMED,  // stopped at an ill-formed sequence
-    UTF8_TRANSCODE_TRUNCATED,  // src ends mid-sequence
+  UTF8_TRANSCODE_OK,         // src fully consumed, no errors
+  UTF8_TRANSCODE_EXHAUSTED,  // dst full before src was consumed
+  UTF8_TRANSCODE_ILLFORMED,  // stopped at an ill-formed sequence
+  UTF8_TRANSCODE_TRUNCATED,  // src ends mid-sequence
 } utf8_transcode_status_t;
 
 typedef struct {
-    utf8_transcode_status_t status;
-    size_t consumed;   // bytes read from src
-    size_t decoded;    // codepoints decoded from src
-    size_t written;    // code units written to dst
-    size_t advance;    // bytes to skip on ILLFORMED or TRUNCATED, else 0
+  utf8_transcode_status_t status;
+  size_t consumed;   // bytes read from src
+  size_t decoded;    // codepoints decoded from src
+  size_t written;    // code units written to dst
+  size_t advance;    // bytes to skip on ILLFORMED or TRUNCATED, else 0
 } utf8_transcode_result_t;
 
 utf8_transcode_result_t utf8_transcode_utf16(const char *src, size_t src_len,
@@ -914,7 +915,7 @@ No DFA backend required.
 size_t utf8_distance_unsafe(const char *src, size_t len);
 ```
 
-**`utf8_distance_unsafe`** returns the number of codepoints in `src[0..len)`. 
+**`utf8_distance_unsafe`** returns the number of codepoints in `src[0..len)`.
 Uses SIMD (when available) or SWAR to process blocks in bulk. Cannot fail.
 
 ---
@@ -1032,42 +1033,28 @@ path and same-length-class batching as `utf8_transcode_unsafe.h`.
 
 ## Error handling and U+FFFD replacement
 
-When processing untrusted input, any ill-formed sequence should be replaced
-with U+FFFD (REPLACEMENT CHARACTER). Skipping ill-formed sequences can have
-security implications; see Unicode Technical Report #36,
+Ill-formed input should either be rejected or have each ill-formed part
+replaced with U+FFFD (REPLACEMENT CHARACTER). Silently skipping it has
+security implications; see
 [Unicode Security Considerations](https://www.unicode.org/reports/tr36/tr36-15.html).
-Ill-formed sequences should be replaced with U+FFFD or the input rejected
-outright.
 
-### Maximal subpart
+How many U+FFFD to emit is fixed by the *maximal subpart* rule, recommended
+by [Unicode 17.0 §3.9](https://www.unicode.org/versions/Unicode17.0.0/core-spec/chapter-3/#G66453)
+and required by the [WHATWG Encoding Standard](https://encoding.spec.whatwg.org/#utf-8-decoder).
+A maximal subpart is the longest prefix of an ill-formed sequence that is
+either the start of an otherwise well-formed sequence, or a single byte.
+Each one is replaced by exactly one U+FFFD.
 
-The number of U+FFFD characters to emit per ill-formed sequence is determined
-by the *maximal subpart* rule, defined in [Unicode 17.0 Table 3-8](https://www.unicode.org/versions/Unicode17.0.0/core-spec/chapter-3/#G66453). 
-A maximal subpart is the longest prefix of an ill-formed sequence that is 
-either the start of an otherwise well-formed sequence, or a single byte. Each 
-maximal subpart produces exactly one U+FFFD.
+| Bytes      | Why ill-formed               | Maximal subparts | U+FFFD |
+| :---       | :---                         | :---             | ---:   |
+| `F0 90 80` | 4-byte sequence cut short    | `F0 90 80`       | 1      |
+| `F0 80 80` | `80` cannot follow `F0`      | `F0`, `80`, `80` | 3      |
+| `80 80`    | lone continuation bytes      | `80`, `80`       | 2      |
 
-For example, the byte sequence `\xF0\x80\x80` is a truncated 4-byte sequence:
-`\xF0` is a valid 4-byte lead followed by two valid continuation bytes, but a
-third continuation byte is missing. All three bytes form one maximal subpart
-and produce one U+FFFD. Two lone continuation bytes `\x80\x80`, on the other
-hand, each form their own maximal subpart of length 1 and produce two U+FFFD.
-
-### Standards requirements
-
-[Unicode 17.0 §3.9 recommends](https://www.unicode.org/versions/Unicode17.0.0/core-spec/chapter-3/#G66453), 
-and the [WHATWG Encoding Standard](https://encoding.spec.whatwg.org/#utf-8-decoder)
-requires, that decoders replace each maximal subpart of an ill-formed
-sequence with exactly one U+FFFD. This is the behaviour implemented by
-`utf8_decode_next_replace`,
-`utf8_transcode_utf16_replace`, and `utf8_transcode_utf32_replace`.
-
-The non-replace variants (`utf8_decode_next`, `utf8_transcode_utf16`,
-`utf8_transcode_utf32`) stop and report the error position instead. These are
-intended for applications that need to handle ill-formed input explicitly,
-such as validating input at a trust boundary, logging the error location, or
-applying a custom substitution policy. If you have no such requirement, prefer
-the `_replace` variants.
+The `_replace` functions do this for you. The strict functions, the scanner
+and the validator instead stop and report each subpart, for callers that
+reject input, log the error or apply their own substitution. Without such a
+need, prefer the `_replace` variants.
 
 ## Security
 
@@ -1077,22 +1064,26 @@ the input; passing ill-formed UTF-8 to an unsafe function is undefined
 behaviour.
 
 **All decoded codepoints are within the Unicode scalar value range.** The DFA
-structurally rejects non-shortest-form encodings, surrogate halves 
-(U+D800–U+DFFF), and codepoints above U+10FFFF. These cannot appear in the 
+structurally rejects non-shortest-form encodings, surrogate halves
+(U+D800–U+DFFF), and codepoints above U+10FFFF. These cannot appear in the
 output of any safe decoding or transcoding function.
 
 **No dynamic allocation.** All functions (safe and unsafe) operate on
 caller-supplied buffers with no heap allocation, no global mutable state, and
 no use of `errno`.
 
-**No data-dependent branches on byte value.** The DFA step is a table lookup
-and bitwise shift with no conditional branches that depend on the input byte.
-Execution time scales with the number of bytes processed, not their values.
-Note that the `_ascii` variants are exceptions; they branch on whether a
-chunk contains only ASCII bytes, making their execution time
-content-dependent.
-The `_unsafe` variants also use content-dependent branching (lead-byte
-classification) since they are intended for performance-critical paths where
+**The DFA step does not branch on the input byte.** A step is a table lookup
+and a bitwise shift. `utf8_valid` applies it to every byte and never exits
+early, so an ill-formed byte does not shorten the scan.
+
+This is not a constant-time guarantee and it does not extend to the rest of
+the API. The table lookup is indexed by the input byte, and most functions
+branch on the DFA state or on the decoded value: `utf8_check` rescans to find
+the cursor on failure, the `_bounded` variants stop at the first ill-formed
+block, the `_ascii` variants branch on whether a chunk contains only ASCII
+bytes, and the decoders, transcoders, scanner and validator branch on the
+state after each byte or sequence. The `_unsafe` variants branch on lead-byte
+classification, since they are intended for performance-critical paths where
 the input is already trusted.
 
 ## Performance
